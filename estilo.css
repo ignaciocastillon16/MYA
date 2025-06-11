@@ -1,0 +1,140 @@
+
+#body{
+    background-image: url(log.jpg);
+    background-size: cover;
+    background-position: center;
+    background-size: auto;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#cabecera{
+    width: 100%;
+    height: 150px;
+    background-color: black;
+    align-items: center;
+    text-align: center;
+    display: flex;
+    color: yellow;
+    justify-content: space-between;
+    box-shadow: 0 2px 5px yellow;
+    margin-bottom: 20px;
+}
+
+#logo{
+    height: 100%;
+}
+
+#menuprincipal{
+    padding-right: 10px;
+}
+
+.botonescabecera{
+    color: white;
+    font-size:125%;
+    margin-right: 25px;
+}
+
+.botonescabecera:hover{
+    color: pink;
+}
+#centro{
+    color: black;
+    font-size: large;
+    width: 75%;
+    margin: 0 auto;
+}
+
+.titulo{
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.liniadivisora{
+    border: none;
+    height: 1px;
+    background-color: black;
+    margin: 100px 0;
+}
+
+.invisible{
+    border: none;
+    height: 0px;
+    background-color: black;
+    margin: 25px 0;
+}
+
+.diapositivadefotos {
+  position: relative;
+  max-width: 600px;
+  margin: auto;
+  overflow: hidden;
+}
+
+.foto {
+  display: none;
+  width: 100%;
+}
+
+.fotoactiva {
+  display: block;
+}
+
+.prev, .next {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  width: auto;
+  padding: 12px;
+  margin-top: -22px;
+  color: black;
+  font-weight: bold;
+  font-size: 24px;
+  border: none;
+  background-color: rgba(255,255,255,0.7);
+  user-select: none;
+  border-radius: 50%;
+}
+
+.prev {
+  left: 10px;
+}
+
+.next {
+  right: 10px;
+}
+
+.prev:hover, .next:hover {
+  background-color: rgba(255,255,255,1);
+}
+
+#ubi{
+    font-size: medium;
+}
+
+
+
+#piedepagina{
+    background-color: black;
+    color: yellow;
+    margin-top: 50px;
+    text-align: center;
+}
+
+.logofooter{
+  width: 40px;
+  height: 40px;
+  margin-top: 10px;
+}
+
+
+.fotosmenu{
+    display: block;
+    margin: 20px auto;
+    max-width: 100%;
+    height: auto;
+}
