@@ -1,0 +1,13 @@
+{
+  "name": "MYA Equipo",
+  "short_name": "MYA Equipo",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f4f1",
+  "theme_color": "#111111",
+  "lang": "es",
+  "icons": [
+    { "src": "../img/logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ]
+}

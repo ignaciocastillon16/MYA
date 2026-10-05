@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#111111">
+  <title>Administración</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="../img/logo.jpg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="css/equipo.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-interior">
+      <img class="barra-logo" src="../img/logo.jpg" alt="">
+      <div class="barra-titulo">MYA Equipo<small>Administración</small></div>
+      <div class="barra-espacio"></div>
+      <a class="boton-texto" href="panel.html">Mi fichaje</a>
+      <button id="salir" class="boton-texto" type="button">Salir</button>
+    </div>
+  </header>
+
+  <nav class="pestanas" aria-label="Secciones">
+    <div class="pestanas-interior">
+      <button class="pestana" data-seccion="hoy" type="button">Hoy</button>
+      <button class="pestana" data-seccion="fichajes" type="button">Fichajes</button>
+      <button class="pestana" data-seccion="saldos" type="button">Saldos y pagos</button>
+      <button class="pestana" data-seccion="turnos" type="button">Turnos</button>
+      <button class="pestana" data-seccion="equipo" type="button">Equipo</button>
+      <button class="pestana" data-seccion="ajustes" type="button">Ajustes</button>
+    </div>
+  </nav>
+
+  <main class="contenedor">
+    <!-- HOY -->
+    <section id="seccion-hoy" data-panel hidden>
+      <div class="rejilla rejilla-kpi">
+        <div class="tarjeta"><div class="kpi-etiqueta">Trabajando ahora</div><div class="kpi-valor" id="kpi-trabajando">--</div><div class="kpi-detalle" id="kpi-trabajando-det"></div></div>
+        <div class="tarjeta"><div class="kpi-etiqueta">Horas hoy</div><div class="kpi-valor" id="kpi-horas">--</div><div class="kpi-detalle">Incluye turnos en curso</div></div>
+        <div class="tarjeta"><div class="kpi-etiqueta">Incidencias hoy</div><div class="kpi-valor" id="kpi-incidencias">--</div><div class="kpi-detalle">Fuera de zona, retrasos, olvidos</div></div>
+        <div class="tarjeta"><div class="kpi-etiqueta">Pendiente de pago</div><div class="kpi-valor" id="kpi-pendiente">--</div><div class="kpi-detalle">Total de todo el equipo</div></div>
+      </div>
+
+      <div class="rejilla rejilla-2">
+        <section class="tarjeta">
+          <div class="tarjeta-cabecera"><h2>Trabajando ahora</h2><button class="boton boton-pequeno" id="hoy-mapa" type="button">Ver en mapa</button></div>
+          <ul class="lista" id="hoy-trabajando"></ul>
+        </section>
+        <section class="tarjeta">
+          <div class="tarjeta-cabecera"><h2>Turnos de hoy</h2></div>
+          <ul class="lista" id="hoy-turnos"></ul>
+        </section>
+      </div>
+
+      <section class="tarjeta" id="hoy-alertas-tarjeta">
+        <div class="tarjeta-cabecera"><h2>Incidencias</h2><span class="subtitulo">Últimos 7 días</span></div>
+        <ul class="lista" id="hoy-alertas"></ul>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Fichajes de hoy</h2><button class="boton boton-pequeno" id="hoy-actualizar" type="button">Actualizar</button></div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Trabajador</th><th>Entrada</th><th>Salida</th><th class="num">Horas</th><th>Ubicación</th><th></th></tr></thead>
+            <tbody id="hoy-fichajes"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- FICHAJES -->
+    <section id="seccion-fichajes" data-panel hidden>
+      <section class="tarjeta">
+        <div class="filtros">
+          <div class="campo"><label for="f-trabajador">Trabajador</label><select id="f-trabajador"></select></div>
+          <div class="campo"><label for="f-periodo">Periodo</label>
+            <select id="f-periodo">
+              <option value="hoy">Hoy</option>
+              <option value="semana">Esta semana</option>
+              <option value="semana_anterior">Semana anterior</option>
+              <option value="mes" selected>Este mes</option>
+              <option value="mes_anterior">Mes anterior</option>
+              <option value="anio">Este año</option>
+              <option value="personalizado">Personalizado</option>
+            </select>
+          </div>
+          <div class="campo"><label for="f-desde">Desde</label><input id="f-desde" type="date"></div>
+          <div class="campo"><label for="f-hasta">Hasta</label><input id="f-hasta" type="date"></div>
+          <label class="casilla" style="margin-bottom:10px"><input id="f-incidencias" type="checkbox">Solo incidencias</label>
+        </div>
+        <div class="botones" style="margin-top:14px">
+          <button class="boton boton-primario" id="f-nuevo" type="button">Añadir fichaje manual</button>
+          <button class="boton" id="f-csv" type="button">Exportar CSV</button>
+          <button class="boton" id="f-mapa" type="button">Ver en mapa</button>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Resumen por trabajador</h2><span class="subtitulo" id="f-rango-texto"></span></div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Trabajador</th><th class="num">Días</th><th class="num">Horas</th><th class="num">Importe</th><th class="num">Incidencias</th></tr></thead>
+            <tbody id="f-resumen"></tbody>
+            <tfoot id="f-resumen-total"></tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera"><h2>Detalle de fichajes</h2><span class="subtitulo" id="f-contador"></span></div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Trabajador</th><th>Día</th><th>Entrada</th><th>Salida</th><th class="num">Horas</th><th class="num">Tarifa</th><th class="num">Importe</th><th>Ubicación</th><th></th></tr></thead>
+            <tbody id="f-tabla"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- SALDOS -->
+    <section id="seccion-saldos" data-panel hidden>
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <div><h2>Saldo por trabajador</h2><p class="subtitulo">Lo que se debe a cada persona a día de hoy: horas fichadas por su tarifa, más extras, menos pagos.</p></div>
+          <button class="boton boton-primario" id="s-nuevo" type="button">Registrar movimiento</button>
+        </div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Trabajador</th><th class="num">Horas</th><th class="num">Generado</th><th class="num">Extras</th><th class="num">Pagado</th><th class="num">Pendiente</th><th></th></tr></thead>
+            <tbody id="s-tabla"></tbody>
+            <tfoot id="s-total"></tfoot>
+          </table>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h2>Movimientos</h2>
+          <div class="botones">
+            <select id="s-filtro" aria-label="Trabajador" style="width:auto"></select>
+            <button class="boton boton-pequeno" id="s-csv" type="button">Exportar CSV</button>
+          </div>
+        </div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Fecha</th><th>Trabajador</th><th>Tipo</th><th>Concepto</th><th class="num">Importe</th><th></th></tr></thead>
+            <tbody id="s-movimientos"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- TURNOS -->
+    <section id="seccion-turnos" data-panel hidden>
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <div><h2 id="t-titulo">Cuadrante semanal</h2><p class="subtitulo">Pulsa en una casilla para añadir un turno, o en un turno para modificarlo.</p></div>
+          <div class="botones">
+            <button class="boton" id="t-anterior" type="button" aria-label="Semana anterior">Anterior</button>
+            <button class="boton" id="t-hoy" type="button">Esta semana</button>
+            <button class="boton" id="t-siguiente" type="button" aria-label="Semana siguiente">Siguiente</button>
+            <button class="boton" id="t-copiar" type="button">Copiar semana anterior</button>
+          </div>
+        </div>
+        <div class="tabla-envoltorio">
+          <table class="cuadrante" id="t-cuadrante"></table>
+        </div>
+      </section>
+    </section>
+
+    <!-- EQUIPO -->
+    <section id="seccion-equipo" data-panel hidden>
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <div><h2>Equipo</h2><p class="subtitulo">Cuentas de acceso. Si un trabajador no tiene tarifa propia se usa la tarifa general.</p></div>
+          <button class="boton boton-primario" id="e-nuevo" type="button">Nuevo trabajador</button>
+        </div>
+        <div class="tabla-envoltorio">
+          <table>
+            <thead><tr><th>Nombre</th><th>Usuario</th><th>Puesto</th><th>Rol</th><th class="num">Tarifa / hora</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="e-tabla"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- AJUSTES -->
+    <section id="seccion-ajustes" data-panel hidden>
+      <form id="form-ajustes">
+        <div class="rejilla rejilla-2">
+          <section class="tarjeta">
+            <h2 style="margin-bottom:14px">Sueldo</h2>
+            <div class="campo">
+              <label for="a-tarifa">Tarifa general por hora (EUR)</label>
+              <input id="a-tarifa" type="number" min="0" step="0.01" required>
+              <span class="campo-ayuda">Se aplica a quien no tenga tarifa propia. Los cambios afectan a los fichajes nuevos.</span>
+            </div>
+            <button class="boton" id="a-aplicar-general" type="button">Aplicar a fichajes anteriores...</button>
+            <h2 style="margin:22px 0 14px">Control</h2>
+            <label class="casilla"><input id="a-exigir" type="checkbox">Exigir ubicación para fichar</label>
+            <label class="casilla"><input id="a-bloquear" type="checkbox">Impedir fichar fuera de la zona del local</label>
+            <div class="campo">
+              <label for="a-margen">Margen de retraso (minutos)</label>
+              <input id="a-margen" type="number" min="0" step="1" required>
+              <span class="campo-ayuda">Entradas posteriores al inicio del turno más este margen se marcan como retraso.</span>
+            </div>
+          </section>
+          <section class="tarjeta">
+            <h2 style="margin-bottom:14px">Ubicación del local</h2>
+            <div class="fila-campos">
+              <div class="campo"><label for="a-lat">Latitud</label><input id="a-lat" type="number" step="any" required></div>
+              <div class="campo"><label for="a-lng">Longitud</label><input id="a-lng" type="number" step="any" required></div>
+            </div>
+            <div class="campo">
+              <label for="a-radio">Radio permitido (metros)</label>
+              <input id="a-radio" type="number" min="10" step="1" required>
+            </div>
+            <div class="botones" style="margin-bottom:12px">
+              <button class="boton" id="a-mi-ubicacion" type="button">Usar mi ubicación actual</button>
+              <span class="subtitulo" id="a-ubic-info"></span>
+            </div>
+            <div id="a-mapa" class="mapa mapa-pequeno"></div>
+            <p class="campo-ayuda" style="margin-top:8px">Para mayor exactitud, pulsa "Usar mi ubicación actual" desde dentro del local con el móvil. También puedes pulsar en el mapa.</p>
+          </section>
+        </div>
+        <div class="botones" style="margin-top:16px">
+          <button class="boton boton-primario" type="submit">Guardar ajustes</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

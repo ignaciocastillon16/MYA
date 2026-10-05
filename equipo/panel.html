@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#111111">
+  <title>Mi panel</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="../img/logo.jpg">
+  <link rel="apple-touch-icon" href="../img/logo.jpg">
+  <link rel="stylesheet" href="css/equipo.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="barra-interior">
+      <img class="barra-logo" src="../img/logo.jpg" alt="">
+      <div class="barra-titulo">MYA Equipo<small id="nombre-usuario"></small></div>
+      <div class="barra-espacio"></div>
+      <a id="enlace-admin" class="boton-texto" href="admin.html" hidden>Administración</a>
+      <button id="salir" class="boton-texto" type="button">Salir</button>
+    </div>
+  </header>
+
+  <main class="contenedor contenedor-estrecho">
+    <section class="tarjeta fichar" aria-labelledby="titulo-fichar">
+      <h2 id="titulo-fichar" hidden>Fichaje</h2>
+      <div class="fichar-estado" id="estado-fichaje"><span class="estado">Cargando...</span></div>
+      <div class="fichar-reloj" id="reloj">--:--</div>
+      <div class="fichar-fecha" id="fecha-hoy"></div>
+      <div class="fichar-contador" id="contador"></div>
+      <button id="boton-fichar" class="boton boton-acento fichar-boton" type="button" disabled>Fichar entrada</button>
+      <div class="fichar-ubicacion" id="info-ubicacion"></div>
+    </section>
+
+    <div class="rejilla rejilla-2">
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h2>Pendiente de cobro</h2>
+        </div>
+        <div class="saldo" id="saldo">--</div>
+        <div class="subtitulo">Total acumulado a día de hoy</div>
+        <div class="desglose">
+          <div><div class="kpi-etiqueta">Horas</div><div class="kpi-valor" id="saldo-horas">--</div></div>
+          <div><div class="kpi-etiqueta">Generado</div><div class="kpi-valor" id="saldo-generado">--</div></div>
+          <div><div class="kpi-etiqueta">Cobrado</div><div class="kpi-valor" id="saldo-cobrado">--</div></div>
+        </div>
+        <p class="subtitulo" id="saldo-tarifa" style="margin-top:12px"></p>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cabecera">
+          <h2>Mis turnos</h2>
+          <span class="subtitulo">Próximas 4 semanas</span>
+        </div>
+        <ul class="lista" id="lista-turnos"><li class="cargando">Cargando...</li></ul>
+      </section>
+    </div>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera">
+        <h2>Mis horas</h2>
+        <select id="periodo" aria-label="Periodo" style="width:auto">
+          <option value="semana">Esta semana</option>
+          <option value="semana_anterior">Semana anterior</option>
+          <option value="mes" selected>Este mes</option>
+          <option value="mes_anterior">Mes anterior</option>
+          <option value="anio">Este año</option>
+        </select>
+      </div>
+      <div class="desglose" style="margin:0 0 14px">
+        <div><div class="kpi-etiqueta">Horas</div><div class="kpi-valor" id="periodo-horas">--</div></div>
+        <div><div class="kpi-etiqueta">Importe</div><div class="kpi-valor" id="periodo-importe">--</div></div>
+        <div><div class="kpi-etiqueta">Días</div><div class="kpi-valor" id="periodo-dias">--</div></div>
+      </div>
+      <div class="tabla-envoltorio">
+        <table>
+          <thead><tr><th>Día</th><th>Entradas y salidas</th><th class="num">Horas</th><th class="num">Importe</th></tr></thead>
+          <tbody id="tabla-dias"><tr><td colspan="4" class="cargando">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Pagos y ajustes</h2><span class="subtitulo">Últimos movimientos</span></div>
+      <div class="tabla-envoltorio">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Concepto</th><th class="num">Importe</th></tr></thead>
+          <tbody id="tabla-movimientos"><tr><td colspan="4" class="cargando">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <div class="tarjeta-cabecera"><h2>Mi cuenta</h2></div>
+      <p class="subtitulo" id="datos-cuenta" style="margin-bottom:12px"></p>
+      <button id="cambiar-password" class="boton" type="button">Cambiar contraseña</button>
+    </section>
+  </main>
+
+  <script type="module" src="js/panel.js"></script>
+</body>
+</html>
