@@ -1,0 +1,19 @@
+# Solo api.php e instalar.php son accesibles desde el navegador
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+  <FilesMatch "^(config|config\.local|lib)\.php$|\.(sql|md|log)$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+  <FilesMatch "^(config|config\.local|lib)\.php$|\.(sql|md|log)$">
+    Order allow,deny
+    Deny from all
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow"
+  Header always set Cache-Control "no-store"
+</IfModule>
