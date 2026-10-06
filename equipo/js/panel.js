@@ -2,7 +2,7 @@ import {
   api, resultado, requerirSesion, cerrarSesion, moneda, hora, horasTexto, horaCorta, metros, esc,
   diaDe, sumarDias, instanteMadrid, rangoPeriodo, fechaLarga, fechaCortaDia,
   horasFichaje, agruparPorDia, duracionTurno, obtenerUbicacion, descripcionDispositivo,
-  avisar, mensajeError, abrirModal, confirmar, TIPOS_MOVIMIENTO,
+  avisar, mensajeError, abrirModal, confirmar, botonActualizar, TIPOS_MOVIMIENTO,
 } from './comun.js';
 
 const perfil = await requerirSesion();
@@ -56,7 +56,7 @@ function pintarEstado() {
 async function cargarEstado() {
   const [{ data: aj }, { data: abiertos }] = await Promise.all([
     resultado(api('ajustes')),
-    resultado(api('fichajes', { abiertos: true, limite: 1 })),
+    resultado(api('fichajes', { propios: true, abiertos: true, limite: 1 })),
   ]);
   ajustes = aj;
   abierto = abiertos && abiertos[0] ? abiertos[0] : null;
@@ -128,7 +128,7 @@ $('boton-fichar').addEventListener('click', async () => {
 // ---------------------------------------------------------------------
 
 async function cargarSaldo() {
-  const { data, error } = await resultado(api('saldos'));
+  const { data, error } = await resultado(api('saldos', { propios: true }));
   if (error) { avisar(mensajeError(error), 'error'); return; }
   const s = (data || []).find((x) => x.usuario_id === perfil.id) || { horas: 0, devengado: 0, extras: 0, pagado: 0, saldo: 0 };
   $('saldo').textContent = moneda(s.saldo);
@@ -145,7 +145,7 @@ async function cargarSaldo() {
 
 async function cargarTurnos() {
   const hoy = diaDe();
-  const { data, error } = await resultado(api('turnos', { desde: hoy, hasta: sumarDias(hoy, 28) }));
+  const { data, error } = await resultado(api('turnos', { propios: true, desde: hoy, hasta: sumarDias(hoy, 28) }));
   const ul = $('lista-turnos');
   if (error) { ul.innerHTML = `<li class="vacio">${esc(mensajeError(error))}</li>`; return; }
 
@@ -176,6 +176,7 @@ async function cargarTurnos() {
 async function cargarHoras() {
   const { desde, hasta } = rangoPeriodo($('periodo').value);
   const { data, error } = await resultado(api('fichajes', {
+    propios: true,
     desde: instanteMadrid(desde).toISOString(),
     hasta: instanteMadrid(sumarDias(hasta, 1)).toISOString(),
   }));
@@ -209,7 +210,7 @@ $('periodo').addEventListener('change', cargarHoras);
 // ---------------------------------------------------------------------
 
 async function cargarMovimientos() {
-  const { data, error } = await resultado(api('movimientos', { limite: 50 }));
+  const { data, error } = await resultado(api('movimientos', { propios: true, limite: 50 }));
   const tbody = $('tabla-movimientos');
   if (error) { tbody.innerHTML = `<tr><td colspan="4" class="vacio">${esc(mensajeError(error))}</td></tr>`; return; }
   if (!data || data.length === 0) {
@@ -255,6 +256,13 @@ $('cambiar-password').addEventListener('click', () => {
     avisar('Contraseña actualizada.');
   });
 });
+
+async function actualizarTodo() {
+  await cargarEstado();
+  await Promise.all([cargarSaldo(), cargarTurnos(), cargarHoras(), cargarMovimientos()]);
+}
+
+botonActualizar($('actualizar'), actualizarTodo);
 
 // Refresca al volver a la aplicacion (por ejemplo, tras tenerla en segundo plano)
 document.addEventListener('visibilitychange', () => {

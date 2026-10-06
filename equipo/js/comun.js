@@ -426,3 +426,23 @@ export function descargarCSV(nombre, filas) {
 export function numeroCSV(n, decimales = 2) {
   return (Number(n) || 0).toFixed(decimales).replace('.', ',');
 }
+
+// Boton "Actualizar" de la barra superior. En la app instalada en el iPhone
+// no existe el gesto de deslizar hacia abajo para recargar.
+export function botonActualizar(boton, recargar) {
+  if (!boton) return;
+  boton.addEventListener('click', async () => {
+    if (boton.disabled) return;
+    boton.disabled = true;
+    boton.classList.add('girando');
+    try {
+      await recargar();
+      avisar('Datos actualizados.');
+    } catch (e) {
+      avisar(mensajeError(e), 'error');
+    } finally {
+      boton.disabled = false;
+      boton.classList.remove('girando');
+    }
+  });
+}

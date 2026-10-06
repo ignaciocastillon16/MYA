@@ -199,7 +199,9 @@ function accion_fichar(array $e): array
 
 function filtro_usuario(array $u, array $e, array &$cond, array &$params, string $col = 'usuario_id'): void
 {
-    if (!es_admin($u)) {
+    // "propios": el panel personal pide solo los datos de quien ha iniciado sesion,
+    // tambien cuando es administrador
+    if (!es_admin($u) || !empty($e['propios'])) {
         $cond[] = "$col = ?";
         $params[] = $u['id'];
     } elseif (!empty($e['usuario_id'])) {
@@ -251,7 +253,7 @@ function accion_saldos(array $e): array
     $u = requerir_sesion();
     $cond = [];
     $params = [];
-    filtro_usuario($u, [], $cond, $params, 'p.id');
+    filtro_usuario($u, ['propios' => !empty($e['propios'])], $cond, $params, 'p.id');
     $sql = "SELECT p.id AS usuario_id,
                    ROUND(COALESCE(f.horas, 0), 2) AS horas,
                    COALESCE(f.devengado, 0) AS devengado,

@@ -2,7 +2,7 @@ import {
   api, resultado, requerirSesion, cerrarSesion, moneda, hora, fecha, horasTexto, horasDecimal, horaCorta, metros, esc,
   diaDe, sumarDias, lunesDe, instanteMadrid, rangoPeriodo, fechaCortaDia,
   aInputFechaHora, deInputFechaHora, horasFichaje, importeFichaje, duracionTurno,
-  obtenerUbicacion, enlaceMapa, avisar, mensajeError, abrirModal, confirmar, descargarCSV, numeroCSV,
+  obtenerUbicacion, enlaceMapa, avisar, mensajeError, abrirModal, confirmar, descargarCSV, numeroCSV, botonActualizar,
   TIPOS_MOVIMIENTO,
 } from './comun.js';
 
@@ -153,8 +153,11 @@ const SECCIONES = {
   ajustes: () => pintarAjustes(),
 };
 
+let seccionActual = 'hoy';
+
 function mostrarSeccion(nombreSeccion) {
   if (!SECCIONES[nombreSeccion]) nombreSeccion = 'hoy';
+  seccionActual = nombreSeccion;
   document.querySelectorAll('[data-panel]').forEach((s) => { s.hidden = s.id !== `seccion-${nombreSeccion}`; });
   document.querySelectorAll('.pestana').forEach((b) => b.classList.toggle('activa', b.dataset.seccion === nombreSeccion));
   if (location.hash !== `#${nombreSeccion}`) history.replaceState(null, '', `#${nombreSeccion}`);
@@ -1001,6 +1004,18 @@ try {
 }
 mostrarSeccion(location.hash.slice(1));
 window.addEventListener('hashchange', () => mostrarSeccion(location.hash.slice(1)));
+
+botonActualizar($('actualizar'), async () => {
+  await cargarBase();
+  await SECCIONES[seccionActual]();
+});
+
+// Al volver a abrir la app (por ejemplo, desde la pantalla de inicio del iPhone)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !document.querySelector('.modal-fondo')) {
+    cargarBase().then(() => SECCIONES[seccionActual]()).catch(() => {});
+  }
+});
 
 // Actualizacion automatica de la seccion "Hoy" cada minuto
 setInterval(() => {

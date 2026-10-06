@@ -57,8 +57,29 @@ a { color: inherit; }
 .barra-logo { height: 34px; width: 34px; border-radius: 6px; object-fit: cover; }
 .barra-titulo { font-weight: 600; letter-spacing: .02em; font-size: 15px; }
 .barra-titulo small { display: block; font-weight: 400; color: #b9b9b9; font-size: 12px; }
+.barra-titulo, .barra-titulo small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.barra-titulo { flex: 0 1 auto; }
+.barra a, .barra button { flex-shrink: 0; }
 .barra-espacio { flex: 1; }
 .barra .boton-texto { color: #e6e6e6; }
+.boton-barra {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .18);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.boton-barra:hover { background: rgba(255, 255, 255, .16); }
+.boton-barra:disabled { opacity: .7; cursor: default; }
+.boton-barra.girando svg { animation: girar .8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.barra-interior { padding-top: max(10px, env(safe-area-inset-top)); }
 
 /* ---------- Pestanas (admin) ---------- */
 .pestanas {
