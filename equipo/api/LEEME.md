@@ -23,18 +23,9 @@ Apunta cuatro datos: el **nombre de la base de datos**, el **usuario**, la **con
 
 ## 3. Configurar la conexión
 
-En el Administrador de archivos, abre `public_html/equipo/api/config.php` con el editor y rellena los datos del paso 1:
+Si tu web ya tiene `public_html/includes/db.php`, no hay que hacer nada: `equipo/api/config.php` usa automáticamente los mismos datos de conexión. Si cambias la contraseña de la base de datos, basta con actualizarla en `includes/db.php`.
 
-```php
-'db_host'     => 'localhost',
-'db_nombre'   => 'u123456789_equipo',
-'db_usuario'  => 'u123456789_equipo',
-'db_password' => 'tu contraseña',
-```
-
-Guarda el archivo. No pongas la contraseña real en GitHub.
-
-> Si despliegas la web desde Git con **hPanel > Avanzado > Git**, crea en su lugar un archivo `config.local.php` con el mismo contenido. Tiene prioridad sobre `config.php` y Git no lo sobrescribe.
+Si no existe ese archivo, abre `equipo/api/config.php` con el editor del Administrador de archivos y rellena los datos del paso 1 en la parte final.
 
 ## 4. Instalar
 
