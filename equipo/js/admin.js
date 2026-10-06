@@ -1,5 +1,5 @@
 import {
-  sb, requerirSesion, cerrarSesion, moneda, hora, fecha, horasTexto, horasDecimal, horaCorta, metros, esc,
+  api, resultado, requerirSesion, cerrarSesion, moneda, hora, fecha, horasTexto, horasDecimal, horaCorta, metros, esc,
   diaDe, sumarDias, lunesDe, instanteMadrid, rangoPeriodo, fechaCortaDia,
   aInputFechaHora, deInputFechaHora, horasFichaje, importeFichaje, duracionTurno,
   obtenerUbicacion, enlaceMapa, avisar, mensajeError, abrirModal, confirmar, descargarCSV, numeroCSV,
@@ -23,16 +23,6 @@ $('salir').addEventListener('click', cerrarSesion);
 // Utilidades
 // ---------------------------------------------------------------------
 
-async function todas(crearConsulta) {
-  const salida = [];
-  for (let desde = 0; ; desde += 1000) {
-    const { data, error } = await crearConsulta().range(desde, desde + 999);
-    if (error) throw error;
-    salida.push(...data);
-    if (data.length < 1000) break;
-  }
-  return salida;
-}
 
 function nombre(id) {
   return porId.get(id)?.nombre ?? 'Desconocido';
@@ -68,22 +58,6 @@ function incidenciasFichaje(f) {
   if (!f.salida && horasFichaje(f) > HORAS_OLVIDO) lista.push(`Abierto más de ${HORAS_OLVIDO} h (posible olvido)`);
   if (f.salida && horasFichaje(f) > HORAS_OLVIDO) lista.push(`Jornada de más de ${HORAS_OLVIDO} h`);
   return lista;
-}
-
-async function errorFuncion(error) {
-  try {
-    const cuerpo = await error.context.json();
-    return cuerpo.error || error.message;
-  } catch {
-    return error.message;
-  }
-}
-
-async function llamarAdminUsuarios(cuerpo) {
-  const { data, error } = await sb.functions.invoke('admin-usuarios', { body: cuerpo });
-  if (error) throw new Error(await errorFuncion(error));
-  if (data?.error) throw new Error(data.error);
-  return data;
 }
 
 function generarPassword() {
@@ -190,12 +164,7 @@ function mostrarSeccion(nombreSeccion) {
 document.querySelectorAll('.pestana').forEach((b) => b.addEventListener('click', () => mostrarSeccion(b.dataset.seccion)));
 
 async function cargarBase() {
-  const [{ data: aj, error: e1 }, { data: perfiles, error: e2 }] = await Promise.all([
-    sb.from('ajustes').select('*').eq('id', 1).single(),
-    sb.from('perfiles').select('*').order('activo', { ascending: false }).order('nombre'),
-  ]);
-  if (e1) throw e1;
-  if (e2) throw e2;
+  const [aj, perfiles] = await Promise.all([api('ajustes'), api('perfiles')]);
   ajustes = aj;
   trabajadores = perfiles;
   porId.clear();
@@ -215,14 +184,13 @@ async function cargarHoy() {
   const inicioHoy = instanteMadrid(hoy).toISOString();
   const hace7 = instanteMadrid(sumarDias(hoy, -6)).toISOString();
 
-  const [recientes, abiertos, { data: turnos, error: eT }, { data: saldos, error: eS }] = await Promise.all([
-    todas(() => sb.from('fichajes').select('*').gte('entrada', hace7).order('entrada', { ascending: false })),
-    todas(() => sb.from('fichajes').select('*').is('salida', null).order('entrada')),
-    sb.from('turnos').select('*').eq('fecha', hoy).order('hora_inicio'),
-    sb.rpc('saldos'),
+  const [recientes, abiertosDesc, turnos, saldos] = await Promise.all([
+    api('fichajes', { desde: hace7 }),
+    api('fichajes', { abiertos: true }),
+    api('turnos', { desde: hoy, hasta: hoy }),
+    api('saldos'),
   ]);
-  if (eT) throw eT;
-  if (eS) throw eS;
+  const abiertos = [...abiertosDesc].reverse();
 
   hoyFichajes = recientes.filter((f) => f.entrada >= inicioHoy || !f.salida);
   for (const f of abiertos) if (!hoyFichajes.some((x) => x.id === f.id)) hoyFichajes.push(f);
@@ -351,13 +319,10 @@ async function cargarFichajes() {
   const usuario = $('f-trabajador').value;
   $('f-rango-texto').textContent = `${fecha(instanteMadrid(desde, '12:00'))} - ${fecha(instanteMadrid(hasta, '12:00'))}`;
 
-  listaFichajes = await todas(() => {
-    let q = sb.from('fichajes').select('*')
-      .gte('entrada', instanteMadrid(desde).toISOString())
-      .lt('entrada', instanteMadrid(sumarDias(hasta, 1)).toISOString())
-      .order('entrada', { ascending: false });
-    if (usuario) q = q.eq('usuario_id', usuario);
-    return q;
+  listaFichajes = await api('fichajes', {
+    desde: instanteMadrid(desde).toISOString(),
+    hasta: instanteMadrid(sumarDias(hasta, 1)).toISOString(),
+    usuario_id: usuario || null,
   });
 
   const soloIncidencias = $('f-incidencias').checked;
@@ -499,12 +464,12 @@ function editarFichaje(f, alGuardar) {
     const datos = { entrada, salida, tarifa, nota: el.querySelector('#ff-nota').value.trim() || null };
     let error;
     if (nuevo) {
-      ({ error } = await sb.from('fichajes').insert({ ...datos, usuario_id: el.querySelector('#ff-usuario').value, manual: true }));
+      ({ error } = await resultado(api('fichaje_guardar', { ...datos, usuario_id: el.querySelector('#ff-usuario').value })));
     } else {
-      ({ error } = await sb.from('fichajes').update(datos).eq('id', f.id));
+      ({ error } = await resultado(api('fichaje_guardar', { ...datos, id: f.id })));
     }
     if (error) {
-      avisar(/fichajes_un_abierto/.test(error.message) ? 'Este trabajador ya tiene un fichaje abierto. Indica la hora de salida.' : mensajeError(error), 'error');
+      avisar(mensajeError(error), 'error');
       return;
     }
     cerrar();
@@ -514,7 +479,7 @@ function editarFichaje(f, alGuardar) {
 
   el.querySelector('[data-borrar]')?.addEventListener('click', async () => {
     if (!await confirmar('Se eliminará este fichaje de forma permanente.', { titulo: 'Eliminar fichaje', boton: 'Eliminar', peligro: true })) return;
-    const { error } = await sb.from('fichajes').delete().eq('id', f.id);
+    const { error } = await resultado(api('fichaje_eliminar', { id: f.id }));
     if (error) { avisar(mensajeError(error), 'error'); return; }
     cerrar();
     avisar('Fichaje eliminado.');
@@ -530,8 +495,7 @@ let saldosActuales = [];
 let movimientosActuales = [];
 
 async function cargarSaldos() {
-  const { data, error } = await sb.rpc('saldos');
-  if (error) throw error;
+  const data = await api('saldos');
   saldosActuales = data.filter((s) => porId.has(s.usuario_id))
     .filter((s) => porId.get(s.usuario_id).activo || Number(s.saldo) !== 0 || Number(s.horas) > 0)
     .sort((a, b) => nombre(a.usuario_id).localeCompare(nombre(b.usuario_id), 'es'));
@@ -570,11 +534,7 @@ async function cargarSaldos() {
 
 async function cargarMovimientos() {
   const filtro = $('s-filtro').value;
-  movimientosActuales = await todas(() => {
-    let q = sb.from('movimientos').select('*').order('fecha', { ascending: false }).order('id', { ascending: false });
-    if (filtro) q = q.eq('usuario_id', filtro);
-    return q;
-  });
+  movimientosActuales = await api('movimientos', { usuario_id: filtro || null });
   $('s-movimientos').innerHTML = movimientosActuales.length === 0
     ? '<tr><td colspan="6" class="vacio">No hay movimientos registrados.</td></tr>'
     : movimientosActuales.slice(0, 300).map((m) => {
@@ -590,7 +550,7 @@ async function cargarMovimientos() {
     }).join('');
   document.querySelectorAll('[data-borrar-mov]').forEach((b) => b.addEventListener('click', async () => {
     if (!await confirmar('Se eliminará este movimiento y el saldo se recalculará.', { titulo: 'Eliminar movimiento', boton: 'Eliminar', peligro: true })) return;
-    const { error } = await sb.from('movimientos').delete().eq('id', b.dataset.borrarMov);
+    const { error } = await resultado(api('movimiento_eliminar', { id: b.dataset.borrarMov }));
     if (error) { avisar(mensajeError(error), 'error'); return; }
     avisar('Movimiento eliminado.');
     cargarSaldos().catch((e) => avisar(mensajeError(e), 'error'));
@@ -644,14 +604,13 @@ function nuevoMovimiento(usuarioId) {
     e.preventDefault();
     const importe = Number(el.querySelector('#m-importe').value);
     if (!(importe > 0)) { avisar('El importe debe ser mayor que cero.', 'error'); return; }
-    const { error } = await sb.from('movimientos').insert({
+    const { error } = await resultado(api('movimiento_crear', {
       usuario_id: sel.value,
       tipo: el.querySelector('#m-tipo').value,
       importe,
       fecha: el.querySelector('#m-fecha').value,
       concepto: el.querySelector('#m-concepto').value.trim() || null,
-      creado_por: yo.id,
-    });
+    }));
     if (error) { avisar(mensajeError(error), 'error'); return; }
     cerrar();
     avisar('Movimiento registrado.');
@@ -669,8 +628,7 @@ const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', '
 
 async function cargarTurnos() {
   const fin = sumarDias(semana, 6);
-  const { data, error } = await sb.from('turnos').select('*').gte('fecha', semana).lte('fecha', fin).order('hora_inicio');
-  if (error) throw error;
+  const data = await api('turnos', { desde: semana, hasta: fin });
   turnosSemana = data;
   $('t-titulo').textContent = `Semana del ${fechaCortaDia(semana)} al ${fechaCortaDia(fin)}`;
 
@@ -741,9 +699,9 @@ function editarTurno(t, usuarioId, dia) {
     if (nuevo) {
       const fechas = new Set([fechaElegida]);
       el.querySelectorAll('[data-repetir]:checked:not(:disabled)').forEach((c) => fechas.add(c.dataset.repetir));
-      ({ error } = await sb.from('turnos').insert([...fechas].map((f) => ({ ...base, fecha: f }))));
+      ({ error } = await resultado(api('turnos_crear', { turnos: [...fechas].map((f) => ({ ...base, fecha: f })) })));
     } else {
-      ({ error } = await sb.from('turnos').update({ ...base, fecha: fechaElegida }).eq('id', t.id));
+      ({ error } = await resultado(api('turno_actualizar', { ...base, fecha: fechaElegida, id: t.id })));
     }
     if (error) { avisar(mensajeError(error), 'error'); return; }
     cerrar();
@@ -752,7 +710,7 @@ function editarTurno(t, usuarioId, dia) {
   });
 
   el.querySelector('[data-borrar]')?.addEventListener('click', async () => {
-    const { error } = await sb.from('turnos').delete().eq('id', t.id);
+    const { error } = await resultado(api('turno_eliminar', { id: t.id }));
     if (error) { avisar(mensajeError(error), 'error'); return; }
     cerrar();
     avisar('Turno eliminado.');
@@ -765,7 +723,7 @@ $('t-siguiente').addEventListener('click', () => { semana = sumarDias(semana, 7)
 $('t-hoy').addEventListener('click', () => { semana = lunesDe(diaDe()); cargarTurnos().catch((e) => avisar(mensajeError(e), 'error')); });
 $('t-copiar').addEventListener('click', async () => {
   const anterior = sumarDias(semana, -7);
-  const { data, error } = await sb.from('turnos').select('*').gte('fecha', anterior).lte('fecha', sumarDias(anterior, 6));
+  const { data, error } = await resultado(api('turnos', { desde: anterior, hasta: sumarDias(anterior, 6) }));
   if (error) { avisar(mensajeError(error), 'error'); return; }
   if (!data.length) { avisar('La semana anterior no tiene turnos.', 'error'); return; }
   const clave = (x) => `${x.usuario_id}|${x.fecha}|${horaCorta(x.hora_inicio)}`;
@@ -775,7 +733,7 @@ $('t-copiar').addEventListener('click', async () => {
     .filter((x) => !existentes.has(clave(x)) && porId.get(x.usuario_id)?.activo);
   if (!nuevos.length) { avisar('Los turnos de la semana anterior ya están copiados.'); return; }
   if (!await confirmar(`Se copiarán ${nuevos.length} turnos de la semana anterior a esta semana.`, { titulo: 'Copiar turnos', boton: 'Copiar' })) return;
-  const { error: e2 } = await sb.from('turnos').insert(nuevos);
+  const { error: e2 } = await resultado(api('turnos_crear', { turnos: nuevos }));
   if (e2) { avisar(mensajeError(e2), 'error'); return; }
   avisar('Turnos copiados.');
   cargarTurnos().catch((e) => avisar(mensajeError(e), 'error'));
@@ -864,7 +822,7 @@ function editarTrabajador(t) {
       if (nuevo) {
         const usuario = el.querySelector('#e-usuario').value.trim().toLowerCase();
         const password = el.querySelector('#e-pass').value;
-        await llamarAdminUsuarios({ accion: 'crear', usuario, password, ...datos });
+        await api('usuario_crear', { usuario, password, ...datos });
         cerrar();
         await cargarBase();
         pintarEquipo();
@@ -876,14 +834,11 @@ function editarTrabajador(t) {
           pie: '<button class="boton boton-primario" type="button" data-cerrar>Hecho</button>',
         });
       } else {
-        if (t.id === yo.id) delete datos.rol;
-        const { error } = await sb.from('perfiles').update(datos).eq('id', t.id);
-        if (error) throw error;
+        await api('usuario_actualizar', { ...datos, id: t.id });
         if (el.querySelector('#e-retro').checked) {
           const desde = el.querySelector('#e-retro-desde').value;
-          const { data: n, error: e2 } = await sb.rpc('aplicar_tarifa', { p_usuario: t.id, p_desde: desde });
-          if (e2) throw e2;
-          avisar(`Tarifa aplicada a ${n} fichajes.`);
+          const r = await api('aplicar_tarifa', { usuario_id: t.id, desde });
+          avisar(`Tarifa aplicada a ${r.actualizados} fichajes.`);
         }
         cerrar();
         avisar('Datos guardados.');
@@ -906,7 +861,7 @@ function editarTrabajador(t) {
     el2.querySelector('#form-np').addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
-        await llamarAdminUsuarios({ accion: 'password', id: t.id, password: el2.querySelector('#np').value });
+        await api('usuario_password', { id: t.id, password: el2.querySelector('#np').value });
         cerrar2();
         avisar('Contraseña cambiada. Comunícasela al trabajador.');
       } catch (err) { avisar(mensajeError(err), 'error'); }
@@ -917,7 +872,7 @@ function editarTrabajador(t) {
     const activar = !t.activo;
     if (!activar && !await confirmar(`${t.nombre} no podrá iniciar sesión ni fichar. Su historial se conserva.`, { titulo: 'Desactivar cuenta', boton: 'Desactivar', peligro: true })) return;
     try {
-      await llamarAdminUsuarios({ accion: 'activar', id: t.id, activo: activar });
+      await api('usuario_activar', { id: t.id, activo: activar });
       cerrar();
       avisar(activar ? 'Cuenta activada.' : 'Cuenta desactivada.');
       await cargarBase();
@@ -928,7 +883,7 @@ function editarTrabajador(t) {
   el.querySelector('[data-eliminar]')?.addEventListener('click', async () => {
     if (!await confirmar(`Se eliminará la cuenta de ${t.nombre} de forma permanente. Solo es posible si no tiene fichajes ni pagos.`, { titulo: 'Eliminar cuenta', boton: 'Eliminar', peligro: true })) return;
     try {
-      await llamarAdminUsuarios({ accion: 'eliminar', id: t.id });
+      await api('usuario_eliminar', { id: t.id });
       cerrar();
       avisar('Cuenta eliminada.');
       await cargarBase();
@@ -1004,9 +959,8 @@ $('form-ajustes').addEventListener('submit', async (e) => {
     lat_local: Number($('a-lat').value),
     lng_local: Number($('a-lng').value),
     radio_metros: Math.round(Number($('a-radio').value)),
-    actualizado: new Date().toISOString(),
   };
-  const { error } = await sb.from('ajustes').update(datos).eq('id', 1);
+  const { error } = await resultado(api('ajustes_guardar', datos));
   if (error) { avisar(mensajeError(error), 'error'); return; }
   avisar('Ajustes guardados.');
   await cargarBase();
@@ -1027,9 +981,9 @@ $('a-aplicar-general').addEventListener('click', () => {
     const desde = el.querySelector('#apl-desde').value;
     let total = 0;
     for (const t of afectados) {
-      const { data, error } = await sb.rpc('aplicar_tarifa', { p_usuario: t.id, p_desde: desde });
+      const { data, error } = await resultado(api('aplicar_tarifa', { usuario_id: t.id, desde }));
       if (error) { avisar(mensajeError(error), 'error'); return; }
-      total += data;
+      total += data.actualizados;
     }
     cerrar();
     avisar(`Tarifa aplicada a ${total} fichajes.`);

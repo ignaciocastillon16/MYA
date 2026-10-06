@@ -1,23 +1,17 @@
-import { sb, emailDeUsuario, mensajeError } from './comun.js';
+import { api, mensajeError } from './comun.js';
 
 const formulario = document.getElementById('formulario');
 const mensaje = document.getElementById('mensaje');
 const boton = document.getElementById('entrar');
 
-async function destinoSegunRol(userId) {
-  const { data } = await sb.from('perfiles').select('rol, activo').eq('id', userId).single();
-  if (!data || !data.activo) {
-    await sb.auth.signOut();
-    return null;
-  }
-  return data.rol === 'admin' ? 'admin.html' : 'panel.html';
-}
+const destino = (perfil) => (perfil.rol === 'admin' ? 'admin.html' : 'panel.html');
 
 // Si ya hay sesion abierta, entrar directamente
-const { data: { session } } = await sb.auth.getSession();
-if (session) {
-  const destino = await destinoSegunRol(session.user.id);
-  if (destino) location.replace(destino);
+try {
+  const perfil = await api('sesion');
+  location.replace(destino(perfil));
+} catch {
+  // Sin sesion: se muestra el formulario
 }
 
 formulario.addEventListener('submit', async (e) => {
@@ -33,15 +27,8 @@ formulario.addEventListener('submit', async (e) => {
   boton.disabled = true;
   boton.textContent = 'Comprobando...';
   try {
-    const { data, error } = await sb.auth.signInWithPassword({ email: emailDeUsuario(usuario), password });
-    if (error) {
-      throw new Error(/invalid|credentials/i.test(error.message)
-        ? 'Usuario o contraseña incorrectos.'
-        : /banned/i.test(error.message) ? 'Esta cuenta está desactivada.' : error.message);
-    }
-    const destino = await destinoSegunRol(data.user.id);
-    if (!destino) throw new Error('Esta cuenta está desactivada.');
-    location.replace(destino);
+    const perfil = await api('login', { usuario, password });
+    location.replace(destino(perfil));
   } catch (err) {
     mensaje.textContent = mensajeError(err);
     mensaje.hidden = false;

@@ -1,5 +1,5 @@
 import {
-  sb, requerirSesion, cerrarSesion, moneda, hora, horasTexto, horaCorta, metros, esc,
+  api, resultado, requerirSesion, cerrarSesion, moneda, hora, horasTexto, horaCorta, metros, esc,
   diaDe, sumarDias, instanteMadrid, rangoPeriodo, fechaLarga, fechaCortaDia,
   horasFichaje, agruparPorDia, duracionTurno, obtenerUbicacion, descripcionDispositivo,
   avisar, mensajeError, abrirModal, confirmar, TIPOS_MOVIMIENTO,
@@ -55,8 +55,8 @@ function pintarEstado() {
 
 async function cargarEstado() {
   const [{ data: aj }, { data: abiertos }] = await Promise.all([
-    sb.from('ajustes').select('*').eq('id', 1).single(),
-    sb.from('fichajes').select('*').eq('usuario_id', perfil.id).is('salida', null).limit(1),
+    resultado(api('ajustes')),
+    resultado(api('fichajes', { abiertos: true, limite: 1 })),
   ]);
   ajustes = aj;
   abierto = abiertos && abiertos[0] ? abiertos[0] : null;
@@ -94,12 +94,13 @@ $('boton-fichar').addEventListener('click', async () => {
 
   boton.textContent = 'Registrando...';
   const parametros = {
-    p_lat: ubic?.lat ?? null,
-    p_lng: ubic?.lng ?? null,
-    p_precision: ubic ? Math.round(ubic.precision) : null,
-    p_dispositivo: descripcionDispositivo(),
+    tipo: esSalida ? 'salida' : 'entrada',
+    lat: ubic?.lat ?? null,
+    lng: ubic?.lng ?? null,
+    precision: ubic ? Math.round(ubic.precision) : null,
+    dispositivo: descripcionDispositivo(),
   };
-  const { data, error } = await sb.rpc(esSalida ? 'fichar_salida' : 'fichar_entrada', parametros);
+  const { data, error } = await resultado(api('fichar', parametros));
   if (error) {
     info.textContent = '';
     avisar(mensajeError(error), 'error');
@@ -108,7 +109,7 @@ $('boton-fichar').addEventListener('click', async () => {
   }
 
   const distancia = esSalida ? data.salida_distancia : data.entrada_distancia;
-  const fuera = ajustes && distancia != null && distancia > ajustes.radio_metros + (parametros.p_precision || 0);
+  const fuera = ajustes && distancia != null && distancia > ajustes.radio_metros + (parametros.precision || 0);
   info.textContent = ubic
     ? `Ubicación registrada (precisión ${metros(ubic.precision)}${distancia != null ? `, a ${metros(distancia)} del local` : ''})${fuera ? '. Atención: estás fuera de la zona del local.' : ''}`
     : 'Fichaje registrado sin ubicación.';
@@ -127,7 +128,7 @@ $('boton-fichar').addEventListener('click', async () => {
 // ---------------------------------------------------------------------
 
 async function cargarSaldo() {
-  const { data, error } = await sb.rpc('saldos');
+  const { data, error } = await resultado(api('saldos'));
   if (error) { avisar(mensajeError(error), 'error'); return; }
   const s = (data || []).find((x) => x.usuario_id === perfil.id) || { horas: 0, devengado: 0, extras: 0, pagado: 0, saldo: 0 };
   $('saldo').textContent = moneda(s.saldo);
@@ -144,10 +145,7 @@ async function cargarSaldo() {
 
 async function cargarTurnos() {
   const hoy = diaDe();
-  const { data, error } = await sb.from('turnos').select('*')
-    .eq('usuario_id', perfil.id)
-    .gte('fecha', hoy).lte('fecha', sumarDias(hoy, 28))
-    .order('fecha').order('hora_inicio');
+  const { data, error } = await resultado(api('turnos', { desde: hoy, hasta: sumarDias(hoy, 28) }));
   const ul = $('lista-turnos');
   if (error) { ul.innerHTML = `<li class="vacio">${esc(mensajeError(error))}</li>`; return; }
 
@@ -177,19 +175,17 @@ async function cargarTurnos() {
 
 async function cargarHoras() {
   const { desde, hasta } = rangoPeriodo($('periodo').value);
-  const { data, error } = await sb.from('fichajes').select('*')
-    .eq('usuario_id', perfil.id)
-    .gte('entrada', instanteMadrid(desde).toISOString())
-    .lt('entrada', instanteMadrid(sumarDias(hasta, 1)).toISOString())
-    .order('entrada', { ascending: false })
-    .limit(1000);
+  const { data, error } = await resultado(api('fichajes', {
+    desde: instanteMadrid(desde).toISOString(),
+    hasta: instanteMadrid(sumarDias(hasta, 1)).toISOString(),
+  }));
   const tbody = $('tabla-dias');
   if (error) { tbody.innerHTML = `<tr><td colspan="4" class="vacio">${esc(mensajeError(error))}</td></tr>`; return; }
 
   const dias = agruparPorDia(data || []);
   const totalHoras = dias.reduce((s, d) => s + d.horas, 0);
   const totalImporte = dias.reduce((s, d) => s + d.importe, 0);
-  $('periodo-horas').textContent = horasTexto(totalHoras);
+  $('periodo-horas').textContent = horasTexto(totalHoras).replace(' min', '');
   $('periodo-importe').textContent = moneda(totalImporte);
   $('periodo-dias').textContent = String(dias.length);
 
@@ -213,8 +209,7 @@ $('periodo').addEventListener('change', cargarHoras);
 // ---------------------------------------------------------------------
 
 async function cargarMovimientos() {
-  const { data, error } = await sb.from('movimientos').select('*')
-    .eq('usuario_id', perfil.id).order('fecha', { ascending: false }).order('id', { ascending: false }).limit(50);
+  const { data, error } = await resultado(api('movimientos', { limite: 50 }));
   const tbody = $('tabla-movimientos');
   if (error) { tbody.innerHTML = `<tr><td colspan="4" class="vacio">${esc(mensajeError(error))}</td></tr>`; return; }
   if (!data || data.length === 0) {
@@ -241,6 +236,7 @@ $('cambiar-password').addEventListener('click', () => {
     titulo: 'Cambiar contraseña',
     cuerpo: `
       <form id="form-password">
+        <div class="campo"><label for="p0">Contraseña actual</label><input id="p0" type="password" autocomplete="current-password" required></div>
         <div class="campo"><label for="p1">Nueva contraseña</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required></div>
         <div class="campo"><label for="p2">Repite la contraseña</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required></div>
         <p class="campo-ayuda">Mínimo 8 caracteres.</p>
@@ -253,7 +249,7 @@ $('cambiar-password').addEventListener('click', () => {
     const p2 = el.querySelector('#p2').value;
     if (p1.length < 8) { avisar('La contraseña debe tener al menos 8 caracteres.', 'error'); return; }
     if (p1 !== p2) { avisar('Las contraseñas no coinciden.', 'error'); return; }
-    const { error } = await sb.auth.updateUser({ password: p1 });
+    const { error } = await resultado(api('cambiar_password', { actual: el.querySelector('#p0').value, nueva: p1 }));
     if (error) { avisar(mensajeError(error), 'error'); return; }
     cerrar();
     avisar('Contraseña actualizada.');

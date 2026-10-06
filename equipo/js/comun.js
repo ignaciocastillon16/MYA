@@ -1,30 +1,56 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { CONFIG } from './config.js';
+export const TZ = 'Europe/Madrid';
 
-export const sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'mya-equipo-sesion' },
-});
-
-export const TZ = CONFIG.ZONA_HORARIA;
+const URL_API = 'api/api.php';
 
 // ---------------------------------------------------------------------
-// Sesion
+// API y sesion
 // ---------------------------------------------------------------------
 
-export function emailDeUsuario(usuario) {
-  return `${usuario.trim().toLowerCase()}@${CONFIG.DOMINIO_USUARIOS}`;
+export async function api(accion, datos = {}) {
+  let r;
+  try {
+    r = await fetch(`${URL_API}?accion=${encodeURIComponent(accion)}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'X-MYA': '1' },
+      body: JSON.stringify(datos),
+    });
+  } catch {
+    throw new Error('Sin conexión. Comprueba tu conexión a internet.');
+  }
+  let cuerpo = null;
+  try {
+    cuerpo = await r.json();
+  } catch {
+    cuerpo = null;
+  }
+  if (r.status === 401 && accion !== 'login' && accion !== 'sesion') {
+    location.replace('./');
+  }
+  if (!r.ok) {
+    const error = new Error(cuerpo?.error || `Error del servidor (${r.status}).`);
+    error.estado = r.status;
+    throw error;
+  }
+  return cuerpo;
+}
+
+// Devuelve { data, error } en lugar de lanzar la excepcion
+export async function resultado(promesa) {
+  try {
+    return { data: await promesa, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 }
 
 // Comprueba la sesion y devuelve el perfil. Redirige si no corresponde.
 export async function requerirSesion({ soloAdmin = false } = {}) {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    location.replace('./');
-    return new Promise(() => {});
-  }
-  const { data: perfil, error } = await sb.from('perfiles').select('*').eq('id', session.user.id).single();
-  if (error || !perfil || !perfil.activo) {
-    await sb.auth.signOut();
+  let perfil;
+  try {
+    perfil = await api('sesion');
+  } catch {
     location.replace('./');
     return new Promise(() => {});
   }
@@ -32,15 +58,15 @@ export async function requerirSesion({ soloAdmin = false } = {}) {
     location.replace('panel.html');
     return new Promise(() => {});
   }
-  sb.auth.onAuthStateChange((evento) => {
-    if (evento === 'SIGNED_OUT') location.replace('./');
-  });
   return perfil;
 }
 
 export async function cerrarSesion() {
-  await sb.auth.signOut();
-  location.replace('./');
+  try {
+    await api('logout');
+  } finally {
+    location.replace('./');
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -329,7 +355,6 @@ export function avisar(texto, tipo = 'ok') {
 export function mensajeError(error) {
   const m = error?.message || String(error || 'Error desconocido');
   if (/Failed to fetch|NetworkError/i.test(m)) return 'Sin conexión. Comprueba tu conexión a internet.';
-  if (/JWT|token/i.test(m)) return 'La sesión ha caducado. Vuelve a iniciar sesión.';
   return m;
 }
 
