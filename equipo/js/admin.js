@@ -84,7 +84,7 @@ function dibujarLocal(mapa) {
   const centro = [ajustes.lat_local, ajustes.lng_local];
   L.circle(centro, { radius: ajustes.radio_metros, color: '#111', weight: 1, fillColor: '#f2c200', fillOpacity: 0.12 }).addTo(mapa);
   L.circleMarker(centro, { radius: 6, color: '#111', weight: 2, fillColor: '#f2c200', fillOpacity: 1 })
-    .bindTooltip('MYA Pedregalejo').addTo(mapa);
+    .bindTooltip('Bar Kali').addTo(mapa);
   return centro;
 }
 
@@ -115,7 +115,7 @@ function abrirMapa(titulo, puntos) {
     mapa.invalidateSize();
     if (limites.length > 1) mapa.fitBounds(limites, { padding: [40, 40], maxZoom: 18 });
     else if (limites.length === 1) mapa.setView(limites[0], 16);
-    else mapa.setView([36.7207, -4.3752], 15);
+    else mapa.setView([36.7195, -4.3785], 15);
   }, 50);
 }
 
@@ -183,6 +183,7 @@ async function cargarBase() {
 let hoyFichajes = [];
 
 async function cargarHoy() {
+  $('hoy-calibrar').hidden = Boolean(ajustes.actualizado);
   const hoy = diaDe();
   const inicioHoy = instanteMadrid(hoy).toISOString();
   const hace7 = instanteMadrid(sumarDias(hoy, -6)).toISOString();

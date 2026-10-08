@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 const ZONA = 'Europe/Madrid';
-const COOKIE_SESION = 'mya_equipo';
+const COOKIE_SESION = 'kali_equipo';
 const DURACION_SESION = 60 * 60 * 24 * 30;   // 30 dias, se renueva con el uso
 const MAX_INTENTOS_USUARIO = 5;               // en 15 minutos
 const MAX_INTENTOS_IP = 20;                   // en 15 minutos

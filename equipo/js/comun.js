@@ -13,7 +13,7 @@ export async function api(accion, datos = {}) {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', 'X-MYA': '1' },
+      headers: { 'Content-Type': 'application/json', 'X-Equipo': '1' },
       body: JSON.stringify(datos),
     });
   } catch {

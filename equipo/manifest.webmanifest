@@ -1,6 +1,6 @@
 {
-  "name": "MYA Equipo",
-  "short_name": "MYA Equipo",
+  "name": "Kali Equipo",
+  "short_name": "Kali Equipo",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -8,6 +8,6 @@
   "theme_color": "#111111",
   "lang": "es",
   "icons": [
-    { "src": "../img/logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+    { "src": "img/logo.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

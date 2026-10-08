@@ -9,7 +9,7 @@ try {
         throw new ErrorUsuario('Metodo no permitido', 405);
     }
     // Proteccion CSRF: un formulario de otra web no puede enviar esta cabecera
-    if (($_SERVER['HTTP_X_MYA'] ?? '') !== '1') {
+    if (($_SERVER['HTTP_X_EQUIPO'] ?? '') !== '1') {
         throw new ErrorUsuario('Peticion no valida', 400);
     }
     $entrada = json_decode((string) file_get_contents('php://input'), true);

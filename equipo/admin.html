@@ -8,15 +8,15 @@
   <meta name="theme-color" content="#111111">
   <title>Administración</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="../img/logo.jpg">
+  <link rel="icon" href="img/logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="css/equipo.css">
 </head>
 <body>
   <header class="barra">
     <div class="barra-interior">
-      <img class="barra-logo" src="../img/logo.jpg" alt="">
-      <div class="barra-titulo">MYA Equipo<small>Administración</small></div>
+      <img class="barra-logo" src="img/logo.png" alt="">
+      <div class="barra-titulo">Kali Equipo<small>Administración</small></div>
       <div class="barra-espacio"></div>
       <a class="boton-texto" href="panel.html">Mi fichaje</a>
       <button id="actualizar" class="boton-barra" type="button" aria-label="Actualizar" title="Actualizar">
@@ -41,6 +41,10 @@
   <main class="contenedor">
     <!-- HOY -->
     <section id="seccion-hoy" data-panel hidden>
+      <div class="aviso-caja aviso" id="hoy-calibrar" hidden style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <span>Falta fijar la ubicación exacta del bar. Hasta entonces, los avisos de "fuera de zona" no son fiables.</span>
+        <a class="boton boton-pequeno" href="#ajustes">Ir a Ajustes</a>
+      </div>
       <div class="rejilla rejilla-kpi">
         <div class="tarjeta"><div class="kpi-etiqueta">Trabajando ahora</div><div class="kpi-valor" id="kpi-trabajando">--</div><div class="kpi-detalle" id="kpi-trabajando-det"></div></div>
         <div class="tarjeta"><div class="kpi-etiqueta">Horas hoy</div><div class="kpi-valor" id="kpi-horas">--</div><div class="kpi-detalle">Incluye turnos en curso</div></div>

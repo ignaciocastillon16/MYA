@@ -1,4 +1,4 @@
--- MYA Pedregalejo - Area de equipo
+-- Bar Kali Pedregalejo - Area de equipo
 -- Tablas para MySQL / MariaDB (Hostinger). Las crea automaticamente instalar.php.
 -- Todas las fechas y horas se guardan en UTC.
 
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS equipo_ajustes (
   actualizado         DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO equipo_ajustes (id, lat_local, lng_local) VALUES (1, 36.720738, -4.375247);
+INSERT IGNORE INTO equipo_ajustes (id, lat_local, lng_local) VALUES (1, 36.719500, -4.378500);
 
 CREATE TABLE IF NOT EXISTS equipo_perfiles (
   id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
