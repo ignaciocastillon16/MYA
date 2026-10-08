@@ -14,7 +14,7 @@ export async function api(accion, datos = {}) {
       credentials: 'same-origin',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json', 'X-Equipo': '1' },
-      body: JSON.stringify(datos),
+      body: JSON.stringify({ ...datos, accion }),
     });
   } catch {
     throw new Error('Sin conexión. Comprueba tu conexión a internet.');

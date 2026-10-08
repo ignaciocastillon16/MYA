@@ -17,7 +17,8 @@ try {
     if (!is_array($entrada)) {
         $entrada = [];
     }
-    $accion = (string) ($_GET['accion'] ?? '');
+    // La accion llega en la URL y tambien en el cuerpo (por si un proxy no reenvia la URL completa)
+    $accion = (string) ($_GET['accion'] ?? ($entrada['accion'] ?? ''));
     if (!preg_match('/^[a-z_]+$/', $accion) || !function_exists("accion_$accion")) {
         throw new ErrorUsuario('Accion desconocida', 404);
     }

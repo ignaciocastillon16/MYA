@@ -238,9 +238,25 @@ function texto_o_null(mixed $v, int $max): ?string
     return $t === '' ? null : mb_substr($t, 0, $max);
 }
 
+function detras_de_netlify(): bool
+{
+    return !empty(config()['detras_de_netlify']);
+}
+
 function ip_cliente(): string
 {
-    return substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    // Detras de Netlify, REMOTE_ADDR es la IP de Netlify: la del movil viene en una cabecera
+    if (detras_de_netlify()) {
+        $reenviada = (string) ($_SERVER['HTTP_X_NF_CLIENT_CONNECTION_IP'] ?? '');
+        if ($reenviada === '' && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $reenviada = trim(explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR'])[0]);
+        }
+        if (filter_var($reenviada, FILTER_VALIDATE_IP)) {
+            $ip = $reenviada;
+        }
+    }
+    return substr($ip, 0, 45);
 }
 
 function validar_password(mixed $p): string
@@ -267,6 +283,10 @@ function es_https(): bool
 
 function ruta_cookie(): string
 {
+    // En Netlify la app esta en la raiz del dominio
+    if (detras_de_netlify()) {
+        return '/';
+    }
     // Limita la cookie a la carpeta del area de equipo (por ejemplo /equipo/)
     $ruta = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/equipo/api/api.php'));
     return rtrim(str_replace('\\', '/', $ruta), '/') . '/';

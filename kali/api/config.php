@@ -7,4 +7,7 @@ return [
     'db_nombre'   => 'u000000000_nombre',
     'db_usuario'  => 'u000000000_usuario',
     'db_password' => 'CAMBIAR',
+
+    // La app se abre desde Netlify, que reenvia las peticiones a esta carpeta.
+    'detras_de_netlify' => true,
 ];

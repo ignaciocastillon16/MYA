@@ -75,7 +75,24 @@ $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
   <title>Instalación</title>
-  <link rel="stylesheet" href="../css/equipo.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: #f4f4f1; color: #18181b; font-size: 15px; line-height: 1.45; }
+    .login-pagina { display: flex; align-items: center; justify-content: center; padding: 24px 16px; min-height: 100vh; }
+    .login-caja { width: 100%; }
+    .login-marca { text-align: center; margin-bottom: 22px; }
+    .login-marca h1 { font-size: 19px; font-weight: 600; }
+    .login-marca p { color: #5f5f66; font-size: 14px; }
+    .tarjeta { background: #fff; border: 1px solid #e2e2dc; border-radius: 10px; padding: 18px; }
+    .campo { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+    .campo label { font-size: 13px; font-weight: 600; color: #5f5f66; }
+    .campo-ayuda { font-size: 12px; color: #5f5f66; }
+    input { font: inherit; padding: 9px 11px; border: 1px solid #e2e2dc; border-radius: 8px; width: 100%; }
+    .boton { display: inline-block; width: 100%; text-align: center; font: inherit; font-weight: 600; padding: 11px; border-radius: 8px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; text-decoration: none; }
+    .aviso-caja { border-radius: 8px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; background: #eef2f7; }
+    .aviso-caja.error { background: #fdecea; color: #b42318; }
+    .aviso-caja.ok { background: #e6f4ec; color: #1f7a4d; }
+  </style>
 </head>
 <body>
   <main class="login-pagina">
@@ -87,16 +104,14 @@ $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
       <div class="tarjeta">
       <?php if ($estado === 'error_bd'): ?>
         <div class="aviso-caja error">No se puede conectar con la base de datos.</div>
-        <p style="margin-bottom:10px">Revisa los datos del archivo <strong>equipo/api/config.php</strong>. Están en hPanel &gt; Bases de datos &gt; Administración.</p>
+        <p style="margin-bottom:10px">Revisa los datos del archivo <strong>config.php</strong> de esta carpeta. Están en hPanel &gt; Bases de datos &gt; Administración.</p>
         <p class="campo-ayuda">Detalle técnico: <?= $h($mensaje) ?></p>
       <?php elseif ($estado === 'instalado'): ?>
         <div class="aviso-caja ok">La instalación ya está hecha.</div>
-        <p style="margin-bottom:14px">Por seguridad, puedes borrar el archivo <strong>equipo/api/instalar.php</strong> del servidor.</p>
-        <a class="boton boton-primario" href="../">Ir al inicio de sesión</a>
+        <p>Por seguridad, puedes borrar el archivo <strong>instalar.php</strong> de esta carpeta del servidor.</p>
       <?php elseif ($estado === 'hecho'): ?>
-        <div class="aviso-caja ok">Instalación completada. Ya puedes iniciar sesión con el usuario <strong><?= $h($datos['usuario']) ?></strong>.</div>
-        <p style="margin-bottom:14px">Por seguridad, borra ahora el archivo <strong>equipo/api/instalar.php</strong> del servidor.</p>
-        <a class="boton boton-primario" href="../">Ir al inicio de sesión</a>
+        <div class="aviso-caja ok">Instalación completada. Ya puedes iniciar sesión en la app de Netlify con el usuario <strong><?= $h($datos['usuario']) ?></strong>.</div>
+        <p>Por seguridad, borra ahora el archivo <strong>instalar.php</strong> de esta carpeta del servidor.</p>
       <?php else: ?>
         <p style="margin-bottom:14px">Conexión con la base de datos correcta. Crea la cuenta del administrador.</p>
         <?php if ($mensaje): ?><div class="aviso-caja error"><?= $h($mensaje) ?></div><?php endif; ?>

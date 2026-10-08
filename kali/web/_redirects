@@ -1,0 +1,3 @@
+# Las peticiones de la app se reenvian a la API en PHP de Hostinger.
+# CAMBIA la direccion por la de tu carpeta "api" en Hostinger (sin barra final antes de :splat).
+/api/*  https://TU-DOMINIO-DE-HOSTINGER/kali-api/:splat  200
