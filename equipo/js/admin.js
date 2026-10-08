@@ -2,7 +2,7 @@ import {
   api, resultado, requerirSesion, cerrarSesion, moneda, hora, fecha, horasTexto, horasDecimal, horaCorta, metros, esc,
   diaDe, sumarDias, lunesDe, instanteMadrid, rangoPeriodo, fechaCortaDia,
   aInputFechaHora, deInputFechaHora, horasFichaje, importeFichaje, duracionTurno,
-  obtenerUbicacion, enlaceMapa, avisar, mensajeError, abrirModal, confirmar, descargarCSV, numeroCSV, botonActualizar,
+  obtenerUbicacion, enlaceMapa, descripcionDispositivo, avisar, mensajeError, abrirModal, confirmar, descargarCSV, numeroCSV, botonActualizar,
   TIPOS_MOVIMIENTO,
 } from './comun.js';
 
@@ -150,7 +150,7 @@ const SECCIONES = {
   saldos: () => cargarSaldos(),
   turnos: () => cargarTurnos(),
   equipo: () => pintarEquipo(),
-  ajustes: () => pintarAjustes(),
+  ajustes: () => Promise.all([pintarAjustes(), pintarAvisos()]),
 };
 
 let seccionActual = 'hoy';
@@ -994,6 +994,131 @@ $('a-aplicar-general').addEventListener('click', () => {
   });
 });
 
+// =====================================================================
+// AVISOS PUSH (solo administradores)
+// =====================================================================
+
+const soportaPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const esIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const appInstalada = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function claveABytes(b64) {
+  const base = (b64 + '='.repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(base), (c) => c.charCodeAt(0));
+}
+
+async function suscripcionActual() {
+  if (!soportaPush) return null;
+  const reg = await navigator.serviceWorker.getRegistration();
+  return reg ? reg.pushManager.getSubscription() : null;
+}
+
+function mensajeAvisos(texto, tipo = '') {
+  const caja = $('avisos-mensaje');
+  caja.hidden = !texto;
+  caja.className = `aviso-caja ${tipo}`;
+  caja.textContent = texto || '';
+}
+
+async function pintarAvisos() {
+  const estado = $('avisos-estado');
+  ['avisos-activar', 'avisos-probar', 'avisos-desactivar'].forEach((id) => { $(id).hidden = true; });
+  if (!soportaPush) {
+    estado.className = 'estado';
+    estado.textContent = 'No disponible';
+    mensajeAvisos(esIOS && !appInstalada
+      ? 'En iPhone, primero añade esta página a la pantalla de inicio (botón Compartir > Añadir a pantalla de inicio) y ábrela desde ese icono. Después vuelve aquí y pulsa Activar avisos. Necesitas iOS 16.4 o posterior.'
+      : 'Este navegador no admite avisos. Usa Safari en iPhone (con la app añadida a la pantalla de inicio) o Chrome en Android.', 'aviso');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    estado.className = 'estado estado-error';
+    estado.textContent = 'Bloqueados';
+    mensajeAvisos(esIOS
+      ? 'Has bloqueado los avisos. Actívalos en Ajustes del iPhone > Notificaciones > Kali Equipo y vuelve a esta pantalla.'
+      : 'Has bloqueado los avisos. Permítelos en los ajustes del navegador para este sitio y vuelve a esta pantalla.', 'error');
+    return;
+  }
+  const sub = await suscripcionActual();
+  if (sub && Notification.permission === 'granted') {
+    estado.className = 'estado estado-ok';
+    estado.textContent = 'Activados';
+    mensajeAvisos('');
+    $('avisos-probar').hidden = false;
+    $('avisos-desactivar').hidden = false;
+  } else {
+    estado.className = 'estado';
+    estado.textContent = 'Desactivados';
+    mensajeAvisos('');
+    $('avisos-activar').hidden = false;
+  }
+}
+
+$('avisos-activar').addEventListener('click', async () => {
+  const boton = $('avisos-activar');
+  boton.disabled = true;
+  try {
+    // El permiso se pide lo primero, directamente desde la pulsacion (obligatorio en iPhone)
+    const permiso = await Notification.requestPermission();
+    if (permiso !== 'granted') {
+      await pintarAvisos();
+      return;
+    }
+    const reg = await navigator.serviceWorker.register('sw.js');
+    await navigator.serviceWorker.ready;
+    const { clave } = await api('push_clave');
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: claveABytes(clave) });
+    }
+    await api('push_suscribir', { ...sub.toJSON(), dispositivo: descripcionDispositivo() });
+    avisar('Avisos activados en este dispositivo.');
+  } catch (err) {
+    const delNavegador = ['NotAllowedError', 'AbortError', 'InvalidStateError', 'NotSupportedError'].includes(err?.name);
+    avisar(delNavegador
+      ? 'No se pudieron activar los avisos en este dispositivo. Comprueba que tienes conexión y, en iPhone, que has abierto la app desde el icono de la pantalla de inicio.'
+      : mensajeError(err), 'error');
+  } finally {
+    boton.disabled = false;
+    await pintarAvisos();
+  }
+});
+
+$('avisos-desactivar').addEventListener('click', async () => {
+  try {
+    const sub = await suscripcionActual();
+    if (sub) {
+      await api('push_baja', { endpoint: sub.endpoint });
+      await sub.unsubscribe();
+    }
+    avisar('Avisos desactivados en este dispositivo.');
+  } catch (err) {
+    avisar(mensajeError(err), 'error');
+  }
+  await pintarAvisos();
+});
+
+$('avisos-probar').addEventListener('click', async () => {
+  const boton = $('avisos-probar');
+  boton.disabled = true;
+  try {
+    await api('push_probar');
+    avisar('Aviso de prueba enviado. Debería llegarte en unos segundos.');
+  } catch (err) {
+    avisar(mensajeError(err), 'error');
+  } finally {
+    boton.disabled = false;
+  }
+});
+
+// Si este dispositivo ya tenia avisos, se vuelve a registrar en el servidor por si acaso
+async function sincronizarAvisos() {
+  if (!soportaPush || Notification.permission !== 'granted') return;
+  await navigator.serviceWorker.register('sw.js');
+  const sub = await suscripcionActual();
+  if (sub) await api('push_suscribir', { ...sub.toJSON(), dispositivo: descripcionDispositivo() });
+}
+
 // ---------------------------------------------------------------------
 // Inicio
 // ---------------------------------------------------------------------
@@ -1004,6 +1129,7 @@ try {
   avisar(mensajeError(e), 'error');
 }
 mostrarSeccion(location.hash.slice(1));
+sincronizarAvisos().catch(() => {});
 window.addEventListener('hashchange', () => mostrarSeccion(location.hash.slice(1)));
 
 botonActualizar($('actualizar'), async () => {

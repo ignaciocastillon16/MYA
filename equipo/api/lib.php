@@ -72,8 +72,42 @@ function responder(mixed $datos, int $estado = 200): never
     header('Cache-Control: no-store');
     header('X-Robots-Tag: noindex, nofollow');
     header('X-Content-Type-Options: nosniff');
-    echo json_encode($datos, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $cuerpo = json_encode($datos, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $tareas = $GLOBALS['tareas_despues'] ?? [];
+    if (!$tareas) {
+        echo $cuerpo;
+        exit;
+    }
+    // Hay trabajo pendiente (avisos push): se entrega la respuesta primero
+    // para que el trabajador no tenga que esperar a que se envien.
+    header('Content-Length: ' . strlen($cuerpo));
+    header('Connection: close');
+    echo $cuerpo;
+    if (function_exists('litespeed_finish_request')) {
+        litespeed_finish_request();
+    } elseif (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        while (ob_get_level() > 0) {
+            ob_end_flush();
+        }
+        flush();
+    }
+    ignore_user_abort(true);
+    foreach ($tareas as $tarea) {
+        try {
+            $tarea();
+        } catch (Throwable $e) {
+            error_log('[equipo] tarea posterior: ' . $e->getMessage());
+        }
+    }
     exit;
+}
+
+// Programa una tarea para ejecutarla despues de responder al navegador
+function despues_de_responder(callable $tarea): void
+{
+    $GLOBALS['tareas_despues'][] = $tarea;
 }
 
 // ---------------------------------------------------------------------

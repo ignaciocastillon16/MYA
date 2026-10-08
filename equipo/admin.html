@@ -197,6 +197,21 @@
 
     <!-- AJUSTES -->
     <section id="seccion-ajustes" data-panel hidden>
+      <section class="tarjeta" id="tarjeta-avisos" style="margin-bottom:16px">
+        <div class="tarjeta-cabecera">
+          <div>
+            <h2>Avisos en este móvil</h2>
+            <p class="subtitulo">Recibe una notificación cada vez que alguien fiche la entrada o la salida, aunque tengas la app cerrada.</p>
+          </div>
+          <span id="avisos-estado" class="estado">Comprobando...</span>
+        </div>
+        <div id="avisos-mensaje" class="aviso-caja" hidden></div>
+        <div class="botones">
+          <button class="boton boton-primario" id="avisos-activar" type="button" hidden>Activar avisos</button>
+          <button class="boton" id="avisos-probar" type="button" hidden>Enviar aviso de prueba</button>
+          <button class="boton boton-peligro" id="avisos-desactivar" type="button" hidden>Desactivar en este móvil</button>
+        </div>
+      </section>
       <form id="form-ajustes">
         <div class="rejilla rejilla-2">
           <section class="tarjeta">

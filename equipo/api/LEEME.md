@@ -55,10 +55,25 @@ El logo provisional está en `equipo/img/logo.png`. Para poner el logo real de K
 
 Para fichar más rápido, los trabajadores pueden añadir la página a la pantalla de inicio del móvil: en Safari, Compartir > Añadir a pantalla de inicio; en Chrome, menú > Añadir a pantalla de inicio.
 
+## Avisos en el móvil del administrador
+
+Cada vez que alguien fiche la entrada o la salida, a los administradores que lo activen les llega una notificación en el móvil, aunque tengan la app cerrada. Por ejemplo: "Marta Ruiz ha fichado la entrada · 18:02 · En el local". Si alguien ficha lejos del bar, el aviso lo indica.
+
+Para activarlos en un **iPhone** (iOS 16.4 o posterior):
+
+1. Abre la web en Safari, pulsa **Compartir > Añadir a pantalla de inicio** y abre la app desde ese icono. En una pestaña normal de Safari, el iPhone no permite notificaciones.
+2. Inicia sesión con tu usuario de administrador y entra en **Ajustes > Avisos en este móvil**.
+3. Pulsa **Activar avisos** y acepta el permiso.
+4. Pulsa **Enviar aviso de prueba** para comprobar que llega.
+
+En **Android** se activa igual desde Chrome, sin necesidad de instalar la app. Puedes activarlos en varios móviles, y cada administrador recibe los suyos. Si algún día dejan de llegar, pulsa **Desactivar en este móvil** y vuelve a activarlos.
+
+Los avisos salen de tu propio hosting, sin servicios de terceros de pago. Las claves de seguridad se generan solas la primera vez.
+
 ## Requisitos
 
 - **HTTPS activo.** Sin él, el móvil no deja usar la ubicación. Se activa en **hPanel > Seguridad > SSL**; Hostinger lo incluye gratis. El área de equipo redirige automáticamente a HTTPS.
-- **PHP 8.0 o superior.** Se comprueba en **hPanel > Avanzado > Configuración de PHP**. Hostinger usa PHP 8 por defecto.
+- **PHP 8.0 o superior, con las extensiones `openssl` y `curl`.** Se comprueba en **hPanel > Avanzado > Configuración de PHP**. Hostinger usa PHP 8 y trae ambas extensiones activadas por defecto.
 
 ## Seguridad incluida
 
@@ -68,7 +83,7 @@ Para fichar más rápido, los trabajadores pueden añadir la página a la pantal
 - Cada trabajador solo recibe sus propios datos. Lo comprueba el servidor en cada petición, no solo la página.
 - La hora de los fichajes la pone el servidor. El trabajador no puede adelantarla ni retrasarla.
 - Al desactivar una cuenta o cambiar su contraseña, se cierran todas sus sesiones abiertas.
-- Los archivos `config.php`, `lib.php` y `schema.sql` no se pueden abrir desde el navegador.
+- Los archivos `config.php`, `lib.php`, `push.php` y `schema.sql` no se pueden abrir desde el navegador.
 
 ## Cómo se calcula lo que se debe
 

@@ -105,3 +105,24 @@ CREATE TABLE IF NOT EXISTS equipo_intentos_login (
   KEY ix_usuario_momento (usuario, momento),
   KEY ix_ip_momento (ip, momento)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Avisos push a los administradores (tambien se crean solas si faltan)
+CREATE TABLE IF NOT EXISTS equipo_vapid (
+  id          TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+  publica     VARCHAR(120) NOT NULL,
+  privada_pem TEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS equipo_suscripciones (
+  id            INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  usuario_id    INT UNSIGNED NOT NULL,
+  endpoint      TEXT NOT NULL,
+  endpoint_hash CHAR(64) NOT NULL,
+  p256dh        VARCHAR(120) NOT NULL,
+  auth          VARCHAR(60) NOT NULL,
+  dispositivo   VARCHAR(120) NULL,
+  creado        DATETIME NOT NULL,
+  UNIQUE KEY uk_endpoint (endpoint_hash),
+  KEY ix_usuario (usuario_id),
+  CONSTRAINT fk_susc_usuario FOREIGN KEY (usuario_id) REFERENCES equipo_perfiles (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

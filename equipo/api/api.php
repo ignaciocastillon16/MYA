@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib.php';
+require __DIR__ . '/push.php';
 
 try {
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -190,7 +191,102 @@ function accion_fichar(array $e): array
         $pdo->rollBack();
         throw $ex;
     }
-    return normalizar(fila('SELECT * FROM equipo_fichajes WHERE id = ?', [$id]));
+    $f = fila('SELECT * FROM equipo_fichajes WHERE id = ?', [$id]);
+    $radio = (float) $aj['radio_metros'];
+    despues_de_responder(fn() => avisar_fichaje($u, $f, $tipo, $radio));
+    return normalizar($f);
+}
+
+function hora_madrid(string $utc): string
+{
+    return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(ZONA))->format('H:i');
+}
+
+function texto_distancia(?float $dist, ?float $precision, float $radio): string
+{
+    if ($dist === null) {
+        return 'Sin ubicación';
+    }
+    if ($dist > $radio + ($precision ?? 0)) {
+        return 'Fuera del local, a ' . ($dist >= 1000 ? number_format($dist / 1000, 1, ',', '') . ' km' : round($dist) . ' m');
+    }
+    return 'En el local';
+}
+
+function avisar_fichaje(array $u, array $f, string $tipo, float $radio): void
+{
+    if ($tipo === 'entrada') {
+        $titulo = "{$u['nombre']} ha fichado la entrada";
+        $cuerpo = hora_madrid($f['entrada']) . ' · ' . texto_distancia(
+            $f['entrada_distancia'] !== null ? (float) $f['entrada_distancia'] : null,
+            $f['entrada_precision'] !== null ? (float) $f['entrada_precision'] : null, $radio);
+    } else {
+        $minutos = intdiv(strtotime($f['salida'] . ' UTC') - strtotime($f['entrada'] . ' UTC'), 60);
+        $titulo = "{$u['nombre']} ha fichado la salida";
+        $cuerpo = hora_madrid($f['salida']) . ' · ' . intdiv($minutos, 60) . ' h ' . str_pad((string) ($minutos % 60), 2, '0', STR_PAD_LEFT) . ' min trabajadas';
+        $lugar = texto_distancia(
+            $f['salida_distancia'] !== null ? (float) $f['salida_distancia'] : null,
+            $f['salida_precision'] !== null ? (float) $f['salida_precision'] : null, $radio);
+        if ($lugar !== 'En el local') {
+            $cuerpo .= ' · ' . $lugar;
+        }
+    }
+    avisar_administradores($titulo, $cuerpo, (int) $u['id']);
+}
+
+// =====================================================================
+// Avisos push para administradores
+// =====================================================================
+
+function accion_push_clave(array $e): array
+{
+    requerir_admin();
+    return ['clave' => claves_vapid()['publica']];
+}
+
+function accion_push_suscribir(array $e): array
+{
+    $u = requerir_admin();
+    $endpoint = (string) ($e['endpoint'] ?? '');
+    $p256dh = (string) ($e['keys']['p256dh'] ?? '');
+    $auth = (string) ($e['keys']['auth'] ?? '');
+    if (!preg_match('#^https://[^\s]{10,1000}$#', $endpoint) || $p256dh === '' || $auth === '') {
+        throw new ErrorUsuario('Suscripción no válida.');
+    }
+    clave_desde_punto(de_b64url($p256dh));   // valida la clave
+    if (strlen(de_b64url($auth)) !== 16) {
+        throw new ErrorUsuario('Suscripción no válida.');
+    }
+    asegurar_tablas_push();
+    consulta(
+        'INSERT INTO equipo_suscripciones (usuario_id, endpoint, endpoint_hash, p256dh, auth, dispositivo, creado) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE usuario_id = VALUES(usuario_id), p256dh = VALUES(p256dh), auth = VALUES(auth), dispositivo = VALUES(dispositivo)',
+        [$u['id'], $endpoint, hash('sha256', $endpoint), $p256dh, $auth, texto_o_null($e['dispositivo'] ?? null, 120), ahora()]
+    );
+    return ['ok' => true];
+}
+
+function accion_push_baja(array $e): array
+{
+    $u = requerir_sesion();
+    asegurar_tablas_push();
+    consulta('DELETE FROM equipo_suscripciones WHERE endpoint_hash = ? AND usuario_id = ?', [hash('sha256', (string) ($e['endpoint'] ?? '')), $u['id']]);
+    return ['ok' => true];
+}
+
+function accion_push_probar(array $e): array
+{
+    $u = requerir_admin();
+    asegurar_tablas_push();
+    $subs = filas('SELECT * FROM equipo_suscripciones WHERE usuario_id = ?', [$u['id']]);
+    if (!$subs) {
+        throw new ErrorUsuario('Este usuario no tiene ningún dispositivo con avisos activados.');
+    }
+    $n = enviar_push($subs, ['titulo' => 'Aviso de prueba', 'cuerpo' => 'Los avisos de fichajes funcionan en este dispositivo.', 'url' => 'admin.html#hoy']);
+    if ($n === 0) {
+        throw new ErrorUsuario('No se pudo entregar el aviso. Desactiva y vuelve a activar los avisos en este dispositivo.');
+    }
+    return ['enviados' => $n];
 }
 
 // =====================================================================
