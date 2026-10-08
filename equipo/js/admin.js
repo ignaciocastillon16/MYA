@@ -363,7 +363,7 @@ async function cargarFichajes() {
     ? '<tr><td colspan="9" class="vacio">No hay registros con estos filtros.</td></tr>'
     : visibles.map((f) => {
       const inc = incidenciasFichaje(f);
-      return `<tr>
+      return `<tr class="fila-pulsable" data-fila="${f.id}" title="Pulsa para modificar o eliminar">
         <td>${esc(nombre(f.usuario_id))}${f.manual ? ' <span class="estado">Manual</span>' : ''}${f.editado_en && !f.manual ? ' <span class="estado" title="Modificado por el administrador">Editado</span>' : ''}</td>
         <td class="nowrap">${esc(fechaCortaDia(diaDe(f.entrada)))}</td>
         <td class="nowrap">${esc(hora(f.entrada))}</td>
@@ -372,12 +372,13 @@ async function cargarFichajes() {
         <td class="num">${esc(moneda(f.tarifa))}</td>
         <td class="num">${esc(moneda(importeFichaje(f)))}</td>
         <td>${chipUbicacion(f.entrada_distancia, f.entrada_precision)}${inc.length ? `<div class="campo-ayuda" style="margin-top:4px">${inc.map(esc).join('<br>')}</div>` : ''}</td>
-        <td class="num"><button class="boton boton-pequeno" data-editar="${f.id}" type="button">Editar</button></td>
+        <td class="num"><button class="boton boton-pequeno" type="button">Editar</button></td>
       </tr>`;
     }).join('');
 
-  document.querySelectorAll('#f-tabla [data-editar]').forEach((b) => {
-    b.addEventListener('click', () => editarFichaje(listaFichajes.find((f) => String(f.id) === b.dataset.editar), cargarFichajes));
+  // Toda la fila abre el editor (en el movil el boton queda fuera de la pantalla)
+  document.querySelectorAll('#f-tabla [data-fila]').forEach((fila) => {
+    fila.addEventListener('click', () => editarFichaje(listaFichajes.find((f) => String(f.id) === fila.dataset.fila), cargarFichajes));
   });
 }
 
@@ -477,6 +478,13 @@ function editarFichaje(f, alGuardar) {
     }
     cerrar();
     avisar('Fichaje guardado.');
+    // Si el fichaje queda fuera del periodo filtrado, se amplia el filtro para que se vea
+    const dia = diaDe(entrada);
+    if ($('f-desde').value && (dia < $('f-desde').value || dia > $('f-hasta').value)) {
+      $('f-periodo').value = 'personalizado';
+      if (dia < $('f-desde').value) $('f-desde').value = dia;
+      if (dia > $('f-hasta').value) $('f-hasta').value = dia;
+    }
     alGuardar();
   });
 

@@ -216,6 +216,8 @@ th {
 td { padding: 10px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: var(--superficie-2); }
+tr.fila-pulsable { cursor: pointer; }
+tr.fila-pulsable:active { background: var(--info-fondo); }
 tfoot td { font-weight: 650; border-top: 2px solid var(--borde); border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .nowrap { white-space: nowrap; }
