@@ -55,8 +55,9 @@ Si en lugar de la dirección de Netlify quieres usar un dominio propio (por ejem
 ## 7. Primeros pasos
 
 1. **Fija la ubicación del bar.** Viene puesta una ubicación aproximada del Paseo Marítimo El Pedregal, 62. Ve al bar con el móvil, entra en **Ajustes**, pulsa **Usar mi ubicación actual** y guarda. Hasta que lo hagas, la pantalla **Hoy** muestra un aviso y los avisos de "fuera de zona" no son fiables. Revisa también el radio permitido (150 m por defecto) y la tarifa general.
-2. En **Equipo**, crea las cuentas de los trabajadores. Al crear cada cuenta, la app te muestra la dirección, el usuario y la contraseña que tienes que entregarles.
-3. En **Turnos**, prepara el cuadrante de la semana.
+2. **Fichar solo desde el bar.** En **Ajustes > Control** está marcada por defecto la opción "Solo se puede fichar la entrada y la salida desde el bar". Con ella, nadie puede fichar la entrada ni la salida si su móvil está fuera del radio permitido, ni si el móvil da una ubicación tan imprecisa que no permite comprobarlo. Si un trabajador se marcha sin fichar la salida, la corriges tú desde **Fichajes > Editar**. Si instalaste la app antes de este cambio, marca esa casilla y guarda.
+3. En **Equipo**, crea las cuentas de los trabajadores. Al crear cada cuenta, la app te muestra la dirección, el usuario y la contraseña que tienes que entregarles.
+4. En **Turnos**, prepara el cuadrante de la semana.
 
 Para fichar más rápido, los trabajadores pueden añadir la web a la pantalla de inicio del móvil: en Safari, Compartir > Añadir a pantalla de inicio; en Chrome, menú > Añadir a pantalla de inicio.
 

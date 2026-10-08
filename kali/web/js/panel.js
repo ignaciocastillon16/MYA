@@ -76,6 +76,7 @@ $('boton-fichar').addEventListener('click', async () => {
   const info = $('info-ubicacion');
   boton.disabled = true;
   boton.textContent = 'Obteniendo ubicación...';
+  info.classList.remove('error');
   info.textContent = 'Buscando señal GPS. Mantén el móvil quieto unos segundos.';
 
   let ubic = null;
@@ -84,8 +85,9 @@ $('boton-fichar').addEventListener('click', async () => {
       alProgresar: (m) => { info.textContent = `Precisión actual: ${metros(m.precision)}. Afinando...`; },
     });
   } catch (err) {
-    if (ajustes?.exigir_ubicacion !== false) {
-      info.textContent = '';
+    if (ajustes?.exigir_ubicacion !== false || ajustes?.bloquear_fuera_zona) {
+      info.textContent = err.message;
+      info.classList.add('error');
       avisar(err.message, 'error');
       pintarEstado();
       return;
@@ -102,7 +104,8 @@ $('boton-fichar').addEventListener('click', async () => {
   };
   const { data, error } = await resultado(api('fichar', parametros));
   if (error) {
-    info.textContent = '';
+    info.textContent = mensajeError(error);
+    info.classList.add('error');
     avisar(mensajeError(error), 'error');
     await cargarEstado();
     return;

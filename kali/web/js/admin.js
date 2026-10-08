@@ -929,6 +929,7 @@ async function pintarAjustes() {
   $('a-tarifa').value = ajustes.tarifa_general;
   $('a-exigir').checked = ajustes.exigir_ubicacion;
   $('a-bloquear').checked = ajustes.bloquear_fuera_zona;
+  sincronizarCasillasUbicacion();
   $('a-margen').value = ajustes.margen_retraso_min;
   $('a-lat').value = ajustes.lat_local ?? '';
   $('a-lng').value = ajustes.lng_local ?? '';
@@ -952,6 +953,13 @@ $('a-mi-ubicacion').addEventListener('click', async () => {
     avisar(err.message, 'error');
   }
 });
+
+// Si solo se puede fichar desde el bar, la ubicacion es obligatoria
+function sincronizarCasillasUbicacion() {
+  if ($('a-bloquear').checked) $('a-exigir').checked = true;
+  $('a-exigir').disabled = $('a-bloquear').checked;
+}
+$('a-bloquear').addEventListener('change', sincronizarCasillasUbicacion);
 
 $('form-ajustes').addEventListener('submit', async (e) => {
   e.preventDefault();

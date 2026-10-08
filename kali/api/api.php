@@ -151,12 +151,24 @@ function accion_fichar(array $e): array
     $dispositivo = texto_o_null($e['dispositivo'] ?? null, 300);
     $aj = obtener_ajustes();
 
-    if ($aj['exigir_ubicacion'] && $lat === null) {
+    $soloEnElBar = (bool) $aj['bloquear_fuera_zona'];
+    if (($aj['exigir_ubicacion'] || $soloEnElBar) && $lat === null) {
         throw new ErrorUsuario('Es necesario compartir la ubicación para fichar.');
     }
     $dist = distancia_metros($lat, $lng, $aj['lat_local'] !== null ? (float) $aj['lat_local'] : null, $aj['lng_local'] !== null ? (float) $aj['lng_local'] : null);
-    if ($aj['bloquear_fuera_zona'] && $dist !== null && $dist > (float) $aj['radio_metros'] + (float) ($precision ?? 0)) {
-        throw new ErrorUsuario('Estás fuera del local (a ' . round($dist) . ' m). No se puede fichar desde aquí.');
+    if ($soloEnElBar && $dist !== null) {
+        // Entrada y salida solo dentro del radio del bar. Una ubicacion muy imprecisa
+        // no se acepta: no permitiria saber si la persona esta realmente en el bar.
+        $radio = (float) $aj['radio_metros'];
+        $margen = (float) ($precision ?? 9999);
+        if ($margen > max(100.0, $radio)) {
+            throw new ErrorUsuario('La ubicación de tu móvil no es lo bastante precisa (±' . texto_metros($margen)
+                . ') para comprobar que estás en el bar. Activa la ubicación exacta en los ajustes del móvil y vuelve a intentarlo.');
+        }
+        if ($dist > $radio + min($margen, 30.0)) {
+            throw new ErrorUsuario('Estás fuera del bar (a ' . texto_metros($dist) . '). Solo se puede fichar la '
+                . $tipo . ' desde el bar.');
+        }
     }
 
     $pdo = db();
@@ -203,13 +215,18 @@ function hora_madrid(string $utc): string
     return (new DateTimeImmutable($utc, new DateTimeZone('UTC')))->setTimezone(new DateTimeZone(ZONA))->format('H:i');
 }
 
+function texto_metros(float $m): string
+{
+    return $m >= 1000 ? number_format($m / 1000, 1, ',', '') . ' km' : round($m) . ' m';
+}
+
 function texto_distancia(?float $dist, ?float $precision, float $radio): string
 {
     if ($dist === null) {
         return 'Sin ubicación';
     }
     if ($dist > $radio + ($precision ?? 0)) {
-        return 'Fuera del local, a ' . ($dist >= 1000 ? number_format($dist / 1000, 1, ',', '') . ' km' : round($dist) . ' m');
+        return 'Fuera del local, a ' . texto_metros($dist);
     }
     return 'En el local';
 }

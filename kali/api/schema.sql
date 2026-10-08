@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS equipo_ajustes (
   lng_local           DOUBLE NULL,
   radio_metros        INT UNSIGNED NOT NULL DEFAULT 150,
   exigir_ubicacion    TINYINT(1) NOT NULL DEFAULT 1,
-  bloquear_fuera_zona TINYINT(1) NOT NULL DEFAULT 0,
+  bloquear_fuera_zona TINYINT(1) NOT NULL DEFAULT 1,
   margen_retraso_min  INT UNSIGNED NOT NULL DEFAULT 5,
   actualizado         DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

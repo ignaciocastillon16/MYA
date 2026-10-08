@@ -291,6 +291,7 @@ tfoot td { font-weight: 650; border-top: 2px solid var(--borde); border-bottom: 
   border-radius: 12px;
 }
 .fichar-ubicacion { font-size: 13px; color: var(--texto-2); margin-top: 14px; min-height: 20px; }
+.fichar-ubicacion.error { color: var(--error); font-weight: 600; font-size: 14px; }
 
 .saldo { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .desglose { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
