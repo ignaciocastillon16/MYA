@@ -6,30 +6,73 @@ const URL_API = 'api/api.php';
 // API y sesion
 // ---------------------------------------------------------------------
 
-export async function api(accion, datos = {}) {
-  let r;
+// Como mucho 2 peticiones a la vez: abrir la app con muchas simultaneas puede
+// hacer que la proteccion del hosting las corte (error 429).
+const MAX_SIMULTANEAS = 2;
+let enCurso = 0;
+const enEspera = [];
+
+async function turnoDePeticion() {
+  if (enCurso < MAX_SIMULTANEAS) {
+    enCurso++;
+    return;
+  }
+  await new Promise((resolve) => enEspera.push(resolve));
+}
+
+function liberarPeticion() {
+  const siguiente = enEspera.shift();
+  if (siguiente) siguiente();
+  else enCurso--;
+}
+
+const pausa = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function enviar(accion, datos) {
+  await turnoDePeticion();
   try {
-    r = await fetch(`${URL_API}?accion=${encodeURIComponent(accion)}`, {
+    return await fetch(`${URL_API}?accion=${encodeURIComponent(accion)}`, {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json', 'X-MYA': '1' },
-      body: JSON.stringify(datos),
+      body: JSON.stringify({ ...datos, accion }),
     });
-  } catch {
-    throw new Error('Sin conexión. Comprueba tu conexión a internet.');
+  } finally {
+    liberarPeticion();
   }
+}
+
+export async function api(accion, datos = {}) {
+  let r;
   let cuerpo = null;
-  try {
-    cuerpo = await r.json();
-  } catch {
-    cuerpo = null;
+  // Si el hosting corta la peticion por exceso (429/503 sin respuesta de la app),
+  // la peticion no ha llegado a procesarse: se reintenta tras una pausa.
+  for (let intento = 0; ; intento++) {
+    try {
+      r = await enviar(accion, datos);
+    } catch {
+      throw new Error('Sin conexión. Comprueba tu conexión a internet.');
+    }
+    try {
+      cuerpo = await r.json();
+    } catch {
+      cuerpo = null;
+    }
+    const corteDelHosting = (r.status === 429 || r.status === 503) && !cuerpo?.error;
+    if (!corteDelHosting || intento >= 3) break;
+    const espera = Number(r.headers.get('Retry-After'));
+    await pausa(espera > 0 && espera <= 10 ? espera * 1000 : 1500 * (intento + 1));
   }
   if (r.status === 401 && accion !== 'login' && accion !== 'sesion') {
     location.replace('./');
   }
   if (!r.ok) {
-    const error = new Error(cuerpo?.error || `Error del servidor (${r.status}).`);
+    let mensaje = cuerpo?.error || `Error del servidor (${r.status}).`;
+    if ((r.status === 429 || r.status === 503) && !cuerpo?.error) {
+      mensaje = 'El servidor está recibiendo demasiadas peticiones. Espera unos segundos y pulsa Actualizar.';
+    }
+    const error = new Error(mensaje);
     error.estado = r.status;
     throw error;
   }
