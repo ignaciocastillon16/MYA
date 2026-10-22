@@ -108,10 +108,12 @@ $h = fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         <p class="campo-ayuda">Detalle técnico: <?= $h($mensaje) ?></p>
       <?php elseif ($estado === 'instalado'): ?>
         <div class="aviso-caja ok">La instalación ya está hecha.</div>
-        <p>Por seguridad, puedes borrar el archivo <strong>instalar.php</strong> de esta carpeta del servidor.</p>
+        <p style="margin-bottom:14px">Por seguridad, puedes borrar el archivo <strong>equipo/api/instalar.php</strong> del servidor.</p>
+        <a class="boton" href="../">Ir al inicio de sesión</a>
       <?php elseif ($estado === 'hecho'): ?>
-        <div class="aviso-caja ok">Instalación completada. Ya puedes iniciar sesión en la app de Netlify con el usuario <strong><?= $h($datos['usuario']) ?></strong>.</div>
-        <p>Por seguridad, borra ahora el archivo <strong>instalar.php</strong> de esta carpeta del servidor.</p>
+        <div class="aviso-caja ok">Instalación completada. Ya puedes iniciar sesión con el usuario <strong><?= $h($datos['usuario']) ?></strong>.</div>
+        <p style="margin-bottom:14px">Por seguridad, borra ahora el archivo <strong>equipo/api/instalar.php</strong> del servidor.</p>
+        <a class="boton" href="../">Ir al inicio de sesión</a>
       <?php else: ?>
         <p style="margin-bottom:14px">Conexión con la base de datos correcta. Crea la cuenta del administrador.</p>
         <?php if ($mensaje): ?><div class="aviso-caja error"><?= $h($mensaje) ?></div><?php endif; ?>

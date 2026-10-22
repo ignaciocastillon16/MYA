@@ -1,58 +1,48 @@
-# Área de equipo de Bar Kali: instalación con Netlify y Hostinger
+# Área de equipo de Bar Kali: instalación en Hostinger
 
-La app está repartida en dos partes:
+Todo funciona dentro de Hostinger: las páginas, la API en PHP y la base de datos MySQL. Se sube una sola carpeta, `equipo/`.
 
-- **`web/`** va a **Netlify**. Son las pantallas que abren los trabajadores y el administrador, y su dirección será algo como `https://kali-equipo.netlify.app`.
-- **`api/`** va a **Hostinger**, junto a la base de datos. Es la parte del servidor: guarda los fichajes, comprueba las contraseñas y envía los avisos. Nadie la abre directamente.
-
-Netlify reenvía por dentro las peticiones de la app a Hostinger, así que para el navegador todo es la misma web. Netlify no ejecuta PHP; por eso esa parte se queda en Hostinger.
-
-> **No subas nunca la carpeta `api/` a Netlify.** Contiene la contraseña de la base de datos, y Netlify la publicaría como texto.
+La dirección será `https://tu-dominio/equipo/`. Los buscadores tienen prohibido indexarla y sin iniciar sesión no se puede ver ningún dato.
 
 ---
 
-## 1. Hostinger: base de datos
+## 1. Base de datos
 
-En hPanel, abre **Bases de datos > Bases de datos MySQL**. Crea una base de datos con su usuario y su contraseña, y apunta el **nombre**, el **usuario** y la **contraseña**.
+En hPanel, abre **Bases de datos > Bases de datos MySQL**. Crea una base de datos con su usuario y su contraseña, y apunta el **nombre**, el **usuario** y la **contraseña**. Si ya tenías una de la versión anterior, usa esa misma.
 
-## 2. Hostinger: subir la API
+## 2. Subir los archivos
 
-1. En **Archivos > Administrador de archivos**, entra en `public_html` del dominio que tengas en Hostinger.
-2. Sube la carpeta `api/` y **cámbiale el nombre** a algo que no sea fácil de adivinar, por ejemplo `kali-api-7q3m`. Ese nombre lo vas a usar en el paso 5.
-3. Comprueba que se ha subido el archivo oculto `.htaccess` de esa carpeta, que protege la configuración.
-4. Abre `config.php` dentro de esa carpeta con el editor y rellena los datos del paso 1. Deja `'detras_de_netlify' => true`.
+1. Abre **Archivos > Administrador de archivos** y entra en `public_html`.
+2. Sube el `.zip` y usa **Extraer**. Se creará la carpeta `equipo/`.
+3. Comprueba que se han subido los archivos ocultos `equipo/.htaccess` y `equipo/api/.htaccess`. Protegen la configuración.
 
-## 3. Hostinger: instalar
+## 3. Configurar la conexión
 
-1. Abre en el navegador `https://tu-dominio-de-hostinger/kali-api-7q3m/instalar.php`, con el nombre de carpeta que hayas puesto.
-2. Escribe tu nombre, tu usuario y tu contraseña de administrador. Se crearán las tablas y tu cuenta.
-3. **Borra después `instalar.php`** de esa carpeta.
+Abre `equipo/api/config.php` con el editor y rellena los datos del paso 1. Deja `'detras_de_netlify' => false`.
 
-## 4. Netlify: crear la cuenta
+Cuando subas una actualización, no sustituyas este archivo: si lo haces, tendrás que volver a rellenarlo.
 
-Crea una cuenta gratuita en https://app.netlify.com. Hazlo antes del paso 6: si subes la web sin cuenta, Netlify la borra al cabo de una hora.
+## 4. Instalar
 
-## 5. Conectar la web con la API
+Si la base de datos es nueva:
 
-Abre el archivo `web/_redirects` con cualquier editor de texto y cambia la dirección por la de tu carpeta de Hostinger:
+1. Abre `https://tu-dominio/equipo/api/instalar.php`.
+2. Crea tu cuenta de administrador. Se crearán las tablas.
+3. **Borra después `equipo/api/instalar.php`.**
 
-```
-/api/*  https://tu-dominio-de-hostinger/kali-api-7q3m/:splat  200
-```
+Si ya tenías la base de datos de antes, este paso no hace falta: tus cuentas y tus datos siguen ahí.
 
-Respeta los espacios y deja `:splat  200` tal cual.
+## Si venías de la versión con Netlify
 
-## 6. Netlify: subir la web
+1. Antes de borrar nada, abre la carpeta antigua de la API en Hostinger (por ejemplo `public_html/kali-api-7q3m`) y copia los datos de su `config.php`.
+2. Si tenías los avisos activados, desactívalos en la app de Netlify: **Ajustes > Avisos en este móvil > Desactivar en este móvil**.
+3. Sube la carpeta `equipo/` y rellena su `config.php` con esos datos (pasos 2 y 3). No hace falta el paso 4.
+4. Entra en `https://tu-dominio/equipo/` y comprueba que ves tus trabajadores y fichajes.
+5. Después borra la carpeta antigua de la API y elimina el sitio en Netlify (**Site configuration > Delete site**). **La base de datos no la borres.**
+6. Pasa la nueva dirección a los trabajadores. Quien tuviera la app en la pantalla de inicio tiene que borrar el icono antiguo y añadir la nueva dirección.
+7. Vuelve a activar los avisos desde la nueva dirección.
 
-1. Con la sesión iniciada en Netlify, ve a **Sites** (o **Projects**) y arrastra la **carpeta `web`** entera a la zona de "Deploy manually" / "Drag and drop".
-2. Netlify te dará una dirección del tipo `https://nombre-aleatorio.netlify.app`. Para ponerle un nombre más claro, entra en **Site configuration > Change site name**, por ejemplo `kali-equipo`.
-3. Abre esa dirección e inicia sesión con tu usuario de administrador.
-
-**Para actualizar la web más adelante:** entra en el sitio, ve a **Deploys** y arrastra de nuevo la carpeta `web`, con tu `_redirects` ya editado. Cada actualización gasta parte del cupo gratuito mensual de Netlify, pero para el uso de un bar sobra.
-
-Si en lugar de la dirección de Netlify quieres usar un dominio propio (por ejemplo `equipo.barkali.es`), se configura en **Domain management**.
-
-## 7. Primeros pasos
+## Primeros pasos
 
 1. **Fija la ubicación del bar.** Viene puesta una ubicación aproximada del Paseo Marítimo El Pedregal, 62. Ve al bar con el móvil, entra en **Ajustes**, pulsa **Usar mi ubicación actual** y guarda. Hasta que lo hagas, la pantalla **Hoy** muestra un aviso y los avisos de "fuera de zona" no son fiables. Revisa también el radio permitido (150 m por defecto) y la tarifa general.
 2. **Fichar solo desde el bar.** En **Ajustes > Control** está marcada por defecto la opción "Solo se puede fichar la entrada y la salida desde el bar". Con ella, nadie puede fichar la entrada ni la salida si su móvil está fuera del radio permitido, ni si el móvil da una ubicación tan imprecisa que no permite comprobarlo. Si un trabajador se marcha sin fichar la salida, la corriges tú desde **Fichajes > Editar**. Si instalaste la app antes de este cambio, marca esa casilla y guarda.
@@ -63,7 +53,7 @@ Para fichar más rápido, los trabajadores pueden añadir la web a la pantalla d
 
 ## El logo
 
-El logo provisional está en `web/img/logo.png`. Para poner el logo real de Kali, sustituye ese archivo por otro con el **mismo nombre**: una imagen PNG cuadrada, idealmente de 512 × 512 píxeles. Después vuelve a subir la carpeta `web` a Netlify.
+El logo provisional está en `equipo/img/logo.png`. Para poner el logo real de Kali, sustituye ese archivo por otro con el **mismo nombre**: una imagen PNG cuadrada, idealmente de 512 × 512 píxeles. 
 
 ## Avisos en el móvil del administrador
 
@@ -78,11 +68,11 @@ Para activarlos en un **iPhone** (iOS 16.4 o posterior):
 
 En **Android** se activa igual desde Chrome, sin necesidad de instalar la app. Puedes activarlos en varios móviles, y cada administrador recibe los suyos. Si algún día dejan de llegar, pulsa **Desactivar en este móvil** y vuelve a activarlos.
 
-Los avisos los envía la API de Hostinger, sin servicios de terceros de pago. Las claves de seguridad se generan solas la primera vez.
+Los avisos salen de tu propio hosting, sin servicios de terceros de pago. Las claves de seguridad se generan solas la primera vez.
 
 ## Requisitos
 
-- **HTTPS en Netlify y en Hostinger.** Netlify lo pone solo. En Hostinger se activa en **hPanel > Seguridad > SSL** para el dominio donde está la API; Hostinger lo incluye gratis.
+- **HTTPS activo.** Sin él, el móvil no deja usar la ubicación ni recibir avisos. Se activa en **hPanel > Seguridad > SSL**; Hostinger lo incluye gratis. El área de equipo redirige automáticamente a HTTPS.
 - **PHP 8.0 o superior, con las extensiones `openssl` y `curl`.** Se comprueba en **hPanel > Avanzado > Configuración de PHP**. Hostinger usa PHP 8 y trae ambas extensiones activadas por defecto.
 
 ## Seguridad incluida

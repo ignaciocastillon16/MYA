@@ -8,6 +8,6 @@ return [
     'db_usuario'  => 'u000000000_usuario',
     'db_password' => 'CAMBIAR',
 
-    // La app se abre desde Netlify, que reenvia las peticiones a esta carpeta.
-    'detras_de_netlify' => true,
+    // Solo true si la app se abre desde Netlify reenviando las peticiones aqui.
+    'detras_de_netlify' => false,
 ];
