@@ -11,6 +11,7 @@
 @font-face { font-family: "Cormorant Garamond"; src: url("../fuentes/cormorant-garamond-latin-600-italic.woff2") format("woff2"); font-weight: 600; font-style: italic; font-display: swap; }
 
 :root {
+  color-scheme: only light;
   --crema: #FAE9C2;
   --crema-clara: #FDF6E6;
   --arena: #F4DEAA;
