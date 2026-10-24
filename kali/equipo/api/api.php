@@ -2,6 +2,10 @@
 // API del area de equipo. Todas las peticiones: POST api.php?accion=... con cuerpo JSON.
 declare(strict_types=1);
 
+// Cualquier texto suelto (por ejemplo un espacio antes de <?php en config.php)
+// se retiene aqui para que no impida guardar la cookie de sesion.
+ob_start();
+
 require __DIR__ . '/lib.php';
 require __DIR__ . '/push.php';
 
@@ -43,12 +47,18 @@ function estado_instalacion(): array
     try {
         db();
         $estado['base_de_datos'] = 'conectada';
+        if (ob_get_length()) {
+            $estado['aviso'] = 'Un archivo PHP escribe texto de más (revisa que config.php empiece exactamente por <?php). Ya se corrige solo.';
+        }
     } catch (Throwable $e) {
         $estado['base_de_datos'] = 'NO CONECTA: revisa los datos de equipo/api/config.php';
         return $estado;
     }
     try {
         $estado['tablas'] = 'instaladas';
+        $hay = valores_cookie_sesion() !== [];
+        $estado['sesion_en_este_navegador'] = !$hay ? 'no hay cookie de sesión'
+            : (usuario_actual() !== null ? 'iniciada correctamente' : 'hay cookie pero no es válida');
         $estado['administrador'] = fila("SELECT id FROM equipo_perfiles WHERE rol = 'admin' AND activo = 1 LIMIT 1") !== null
             ? 'existe' : 'NO EXISTE: abre equipo/api/instalar.php';
     } catch (Throwable $e) {
@@ -112,8 +122,9 @@ function accion_cambiar_password(array $e): array
     $nueva = validar_password($e['nueva'] ?? null);
     consulta('UPDATE equipo_perfiles SET password_hash = ? WHERE id = ?', [password_hash($nueva, PASSWORD_DEFAULT), $u['id']]);
     // Cierra la sesion en el resto de dispositivos
-    $actual = hash('sha256', (string) ($_COOKIE[COOKIE_SESION] ?? ''));
-    consulta('DELETE FROM equipo_sesiones WHERE usuario_id = ? AND token_hash <> ?', [$u['id'], $actual]);
+    $actuales = array_map(fn($t) => hash('sha256', $t), valores_cookie_sesion()) ?: [''];
+    consulta('DELETE FROM equipo_sesiones WHERE usuario_id = ? AND token_hash NOT IN (' . implode(',', array_fill(0, count($actuales), '?')) . ')',
+        [$u['id'], ...$actuales]);
     return ['ok' => true];
 }
 

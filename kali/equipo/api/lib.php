@@ -67,6 +67,14 @@ function filas(string $sql, array $params = []): array
 
 function responder(mixed $datos, int $estado = 200): never
 {
+    // Descarta cualquier texto suelto que se haya escrito antes de la respuesta
+    $sobrante = '';
+    while (ob_get_level() > 0) {
+        $sobrante .= (string) ob_get_clean();
+    }
+    if (trim($sobrante, " \t\n\r\0\x0B\xEF\xBB\xBF") !== '') {
+        error_log('[equipo] salida inesperada antes de la respuesta: ' . substr($sobrante, 0, 200));
+    }
     http_response_code($estado);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -281,19 +289,43 @@ function es_https(): bool
 // Sesiones (token aleatorio en cookie HttpOnly, guardado con hash)
 // ---------------------------------------------------------------------
 
+// La cookie vale para todo el dominio: calcular la carpeta falla en algunos hostings
 function ruta_cookie(): string
 {
-    // En Netlify la app esta en la raiz del dominio
-    if (detras_de_netlify()) {
-        return '/';
-    }
-    // Limita la cookie a la carpeta del area de equipo (por ejemplo /equipo/)
+    return '/';
+}
+
+// Ruta que usaban versiones anteriores (por ejemplo /equipo/), para borrar esa cookie vieja
+function ruta_cookie_antigua(): string
+{
     $ruta = dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/equipo/api/api.php'));
     return rtrim(str_replace('\\', '/', $ruta), '/') . '/';
 }
 
+// Todos los valores de la cookie de sesion que envia el navegador (puede haber
+// dos con el mismo nombre si queda una de una version anterior)
+function valores_cookie_sesion(): array
+{
+    $valores = [];
+    foreach (explode(';', (string) ($_SERVER['HTTP_COOKIE'] ?? '')) as $parte) {
+        [$nombre, $valor] = array_map('trim', explode('=', $parte, 2) + [1 => '']);
+        if ($nombre === COOKIE_SESION && preg_match('/^[a-f0-9]{64}$/', $valor)) {
+            $valores[] = $valor;
+        }
+    }
+    return array_values(array_unique($valores));
+}
+
 function poner_cookie(string $valor, int $expira): void
 {
+    if (headers_sent($archivo, $linea)) {
+        throw new ErrorUsuario('No se pudo guardar la sesión porque ' . basename($archivo)
+            . ' escribe texto antes de tiempo. Revisa que config.php empiece exactamente por <?php.', 500);
+    }
+    $antigua = ruta_cookie_antigua();
+    if ($antigua !== ruta_cookie()) {
+        setcookie(COOKIE_SESION, '', ['expires' => time() - 3600, 'path' => $antigua, 'secure' => es_https(), 'httponly' => true, 'samesite' => 'Strict']);
+    }
     setcookie(COOKIE_SESION, $valor, [
         'expires' => $expira,
         'path' => ruta_cookie(),
@@ -322,8 +354,7 @@ function crear_sesion(int $usuarioId): void
 
 function cerrar_sesion(): void
 {
-    $token = $_COOKIE[COOKIE_SESION] ?? '';
-    if (is_string($token) && $token !== '') {
+    foreach (valores_cookie_sesion() as $token) {
         consulta('DELETE FROM equipo_sesiones WHERE token_hash = ?', [hash('sha256', $token)]);
     }
     poner_cookie('', time() - 3600);
@@ -336,16 +367,19 @@ function usuario_actual(): ?array
         return $usuario;
     }
     $usuario = null;
-    $token = $_COOKIE[COOKIE_SESION] ?? '';
-    if (!is_string($token) || !preg_match('/^[a-f0-9]{64}$/', $token)) {
-        return null;
+    $f = null;
+    // Se prueba cada cookie recibida: puede quedar una antigua con el mismo nombre
+    foreach (valores_cookie_sesion() as $token) {
+        $hash = hash('sha256', $token);
+        $f = fila(
+            'SELECT p.*, s.ultimo_uso AS sesion_uso FROM equipo_sesiones s JOIN equipo_perfiles p ON p.id = s.usuario_id
+              WHERE s.token_hash = ? AND s.expira > ? AND p.activo = 1',
+            [$hash, ahora()]
+        );
+        if ($f !== null) {
+            break;
+        }
     }
-    $hash = hash('sha256', $token);
-    $f = fila(
-        'SELECT p.*, s.ultimo_uso AS sesion_uso FROM equipo_sesiones s JOIN equipo_perfiles p ON p.id = s.usuario_id
-          WHERE s.token_hash = ? AND s.expira > ? AND p.activo = 1',
-        [$hash, ahora()]
-    );
     if ($f === null) {
         return null;
     }
