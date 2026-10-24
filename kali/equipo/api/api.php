@@ -6,6 +6,10 @@ require __DIR__ . '/lib.php';
 require __DIR__ . '/push.php';
 
 try {
+    // Abrir api.php en el navegador muestra si todo esta bien instalado (sin datos privados)
+    if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
+        responder(estado_instalacion());
+    }
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         throw new ErrorUsuario('Metodo no permitido', 405);
     }
@@ -31,6 +35,26 @@ try {
         ? 'No se puede conectar con la base de datos. Revisa api/config.php.'
         : 'Error interno del servidor';
     responder(['error' => $msg], 500);
+}
+
+function estado_instalacion(): array
+{
+    $estado = ['api' => 'funciona', 'https' => es_https()];
+    try {
+        db();
+        $estado['base_de_datos'] = 'conectada';
+    } catch (Throwable $e) {
+        $estado['base_de_datos'] = 'NO CONECTA: revisa los datos de equipo/api/config.php';
+        return $estado;
+    }
+    try {
+        $estado['tablas'] = 'instaladas';
+        $estado['administrador'] = fila("SELECT id FROM equipo_perfiles WHERE rol = 'admin' AND activo = 1 LIMIT 1") !== null
+            ? 'existe' : 'NO EXISTE: abre equipo/api/instalar.php';
+    } catch (Throwable $e) {
+        $estado['tablas'] = 'NO INSTALADAS: abre equipo/api/instalar.php';
+    }
+    return $estado;
 }
 
 // =====================================================================

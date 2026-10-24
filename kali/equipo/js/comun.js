@@ -71,6 +71,10 @@ export async function api(accion, datos = {}) {
     let mensaje = cuerpo?.error || `Error del servidor (${r.status}).`;
     if ((r.status === 429 || r.status === 503) && !cuerpo?.error) {
       mensaje = 'El servidor está recibiendo demasiadas peticiones. Espera unos segundos y pulsa Actualizar.';
+    } else if (r.status === 404 && !cuerpo?.error) {
+      mensaje = 'No se encuentra la parte del servidor (carpeta equipo/api). Sube la carpeta equipo completa.';
+    } else if (r.status >= 500 && !cuerpo?.error) {
+      mensaje = 'El servidor ha dado un error. Revisa equipo/api/config.php.';
     }
     const error = new Error(mensaje);
     error.estado = r.status;

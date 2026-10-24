@@ -10,8 +10,12 @@ const destino = (perfil) => (perfil.rol === 'admin' ? 'admin.html' : 'panel.html
 try {
   const perfil = await api('sesion');
   location.replace(destino(perfil));
-} catch {
-  // Sin sesion: se muestra el formulario
+} catch (err) {
+  // Sin sesion (401) se muestra el formulario; cualquier otro fallo se explica
+  if (err.estado !== 401) {
+    mensaje.textContent = mensajeError(err);
+    mensaje.hidden = false;
+  }
 }
 
 formulario.addEventListener('submit', async (e) => {
