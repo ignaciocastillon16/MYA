@@ -324,14 +324,14 @@ function poner_cookie(string $valor, int $expira): void
     }
     $antigua = ruta_cookie_antigua();
     if ($antigua !== ruta_cookie()) {
-        setcookie(COOKIE_SESION, '', ['expires' => time() - 3600, 'path' => $antigua, 'secure' => es_https(), 'httponly' => true, 'samesite' => 'Strict']);
+        setcookie(COOKIE_SESION, '', ['expires' => time() - 3600, 'path' => $antigua, 'secure' => es_https(), 'httponly' => true, 'samesite' => 'Lax']);
     }
     setcookie(COOKIE_SESION, $valor, [
         'expires' => $expira,
         'path' => ruta_cookie(),
         'secure' => es_https(),
         'httponly' => true,
-        'samesite' => 'Strict',
+        'samesite' => 'Lax',
     ]);
 }
 
